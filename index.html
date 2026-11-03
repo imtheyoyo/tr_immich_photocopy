@@ -1,0 +1,906 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photocopy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%224%22%20y%3D%2214%22%20width%3D%2240%22%20height%3D%2232%22%20rx%3D%225%22%20fill%3D%22%232f6fdb%22%20opacity%3D%22.45%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2220%22%20width%3D%2242%22%20height%3D%2234%22%20rx%3D%225%22%20fill%3D%22%232f6fdb%22/%3E%3Ccircle%20cx%3D%2231%22%20cy%3D%2231%22%20r%3D%224.5%22%20fill%3D%22%23fff%22/%3E%3Cpath%20d%3D%22M22%2050%20l11-12%207%207%206-5%2010%2010z%22%20fill%3D%22%23fff%22/%3E%3C/svg%3E">
+<style>
+:root {
+	--bg: #f4f5f7; --panel: #fff; --ink: #1c2230; --mute: #6b7385; --line: #e3e6ec; --field: #f8f9fb;
+	--accent: #3b6fd8; --accentink: #fff; --miss: #e3813b; --ok: #34b268; --warn: #d7424e; --sel: #3b6fd81f;
+}
+@media (prefers-color-scheme: dark) {
+	:root { --bg: #11141a; --panel: #1a1f28; --ink: #e4e7ee; --mute: #8b93a5; --line: #2a313d; --field: #141820;
+		--accent: #6b9cf0; --accentink: #0e1320; --sel: #6b9cf02a; }
+}
+:root { --gap: 14px; --sep: 22px; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 20px; }
+header.top { background: var(--panel); border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; align-items: baseline; gap: 10px; padding-top: 16px; padding-bottom: 16px; }
+h1 { font-size: 18px; margin: 0; font-weight: 650; letter-spacing: -.01em; }
+h1 + .sub { color: var(--mute); font-size: 13px; }
+.sp { flex: 1; }
+.pill { font-size: 12px; color: var(--mute); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+.pill.off { color: var(--warn); border-color: var(--warn); }
+.pill.on { color: var(--ok); border-color: var(--ok); }
+select.pill { appearance: none; -webkit-appearance: none; font: inherit; font-size: 12px; background: transparent; cursor: pointer; padding: 3px 12px; }
+select.pill option { background: var(--panel); color: var(--ink); }
+select.pill:disabled { cursor: default; opacity: .6; }
+main.wrap { padding-top: var(--gap); padding-bottom: 96px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: var(--gap); }
+.card h2 { font-size: 14px; font-weight: 650; margin: 0 0 12px; }
+.src { position: relative; }
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field > span { font-size: 12px; color: var(--mute); }
+.inline { display: flex; gap: 8px; align-items: center; }
+.inline > input[type=text] { flex: 1; min-width: 0; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+input[type=text] { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--field); color: var(--ink); font: inherit; }
+input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.skiprow { align-items: stretch; }
+.tree { flex: 1; min-width: 0; height: 100px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--field); padding: 4px 0; font-size: 13px; }
+.tree.off { opacity: .45; pointer-events: none; }
+.treemsg { color: var(--mute); padding: 6px 11px; }
+.tnode { display: flex; align-items: center; gap: 6px; padding: 2px 8px; white-space: nowrap; }
+.tnode:hover { background: var(--sel); }
+.tnode .tw { width: 14px; text-align: center; color: var(--mute); cursor: pointer; flex-shrink: 0; user-select: none; }
+.tnode label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; }
+.tnode input { margin: 0; accent-color: var(--warn); }
+.tnode.skip label { color: var(--mute); text-decoration: line-through; }
+#skipn { font-style: normal; color: var(--warn); }
+.scanrow { display: flex; justify-content: flex-end; margin-top: 10px; }
+.srcgrid { grid-template-columns: 2fr 1fr; }
+#browse, #dbrowse, button.big { width: 128px; height: 40px; padding: 0 14px; }
+button.big { font-size: 14px; font-weight: 650; }
+button.go { background: transparent; border-color: var(--ok); color: var(--ok); }
+button.go:hover:not(:disabled) { background: color-mix(in srgb, var(--ok) 12%, transparent); border-color: var(--ok); }
+.prefixed { display: flex; align-items: stretch; }
+.prefixed .pre { display: flex; align-items: center; gap: 7px; padding: 0 12px; color: var(--mute); white-space: nowrap; font-variant-numeric: tabular-nums; user-select: none; cursor: default;
+	background: var(--line); border: 1px solid var(--line); border-right: 0; border-radius: 8px 0 0 8px; }
+.prefixed .pre svg { width: 12px; height: 12px; opacity: .7; flex-shrink: 0; }
+.prefixed input[type=text] { border-radius: 0 8px 8px 0; }
+.tog { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; color: var(--ink); font-size: 13px; user-select: none; white-space: nowrap; }
+.tog input { margin: 0; accent-color: var(--accent); }
+.opts { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+button { font: inherit; cursor: pointer; border-radius: 8px; padding: 8px 14px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); white-space: nowrap; }
+button:hover:not(:disabled) { border-color: var(--mute); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accentink); font-weight: 600; }
+button.danger { background: transparent; border-color: var(--warn); color: var(--warn); font-weight: 600; }
+button:disabled { opacity: .4; cursor: default; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.seg button { border: 0; border-radius: 0; padding: 6px 12px; background: transparent; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--ink); color: var(--panel); }
+#views button { display: inline-flex; align-items: center; padding: 6px 10px; }
+#views svg { width: 15px; height: 15px; }
+.seg button:disabled { opacity: .35; cursor: default; }
+.seg button.on:disabled { background: transparent; color: var(--ink); }
+.pick { position: relative; }
+.browser { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 40; max-height: 0; opacity: 0; overflow: hidden; pointer-events: none; border: 1px solid transparent; border-radius: 10px; background: var(--bg); box-shadow: 0 12px 32px rgba(0, 0, 0, .35); transition: max-height .25s ease, opacity .2s ease, border-color .25s; }
+.browser.open { max-height: 320px; opacity: 1; pointer-events: auto; border-color: var(--line); overflow: auto; }
+.src .browser { right: calc(-50% - 14px); }
+.browser .cur { position: sticky; top: 0; z-index: 1; background: var(--bg); padding: 8px 10px 8px 14px; display: flex; gap: 10px; align-items: center; border-bottom: 1px solid var(--line); }
+.browser .cur span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--mute); direction: rtl; text-align: left; }
+.browser .cur button { padding: 4px 12px; font-size: 12px; }
+.browser .cur .bup { padding: 3px 10px; font-size: 14px; line-height: 1.2; }
+.browser .dirs { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 2px; padding: 6px; }
+.browser .d { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 7px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+.browser .d:hover { background: var(--sel); }
+.browser .d svg { flex-shrink: 0; width: 15px; height: 15px; color: var(--mute); }
+.browser .mkrow { display: none; gap: 8px; align-items: center; padding: 8px 10px 8px 14px; border-bottom: 1px solid var(--line); }
+.browser .mkrow.on { display: flex; }
+.browser .mkrow input { width: 240px; padding: 5px 10px; font-size: 13px; }
+.browser .mkrow button { padding: 4px 12px; font-size: 12px; }
+.browser .mkerr { font-size: 12px; color: var(--warn); }
+.browser .none { color: var(--mute); padding: 8px 10px; font-size: 13px; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin: -4px 0 14px; }
+.tabs button { border: 0; border-radius: 0; background: transparent; color: var(--mute); font-weight: 600; padding: 8px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tabs button:hover { color: var(--ink); }
+.tabs button.on { color: var(--ink); border-bottom-color: var(--accent); }
+.pane { display: none; }
+.pane.on { display: block; }
+.duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gap); align-items: stretch; margin-bottom: var(--gap); }
+.duo > .card { margin-bottom: 0; padding: 16px 20px 18px; }
+.recrow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.recrow .hint2 { font-size: 12px; color: var(--mute); }
+.hi { width: 16px; height: 16px; flex-shrink: 0; opacity: .85; }
+.card h2, .chead, .modes .tabs button { display: flex; align-items: center; gap: 8px; }
+.modes .tabs button { display: inline-flex; }
+.chead { font-weight: 650; padding: 8px 0; border-bottom: 1px solid var(--line); margin: -4px 0 16px; }
+.modes .tabs { margin: -4px 0 16px; }
+.modes .tabs button { padding: 8px 14px; }
+.modes .tabs button:first-child { padding-left: 0; }
+.filters { display: flex; flex-direction: column; }
+.tbrow { display: flex; align-items: center; gap: 12px; flex-basis: 100%; }
+.tbrow #views button { height: 32px; }
+.modes .opts { margin-top: 18px; }
+.modes .opts.tight { margin-top: 14px; }
+.modes .tog { gap: 10px; font-size: 14px; }
+.modes .tog input { width: 16px; height: 16px; }
+.filters .frow { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+.filters .frow:last-child { margin-bottom: 0; }
+.filters .frow > .lbl { width: 60px; font-size: 13px; }
+.duo .seg button { height: 36px; padding: 0 16px; display: inline-flex; align-items: center; }
+#views button { padding: 0 13px; }
+.modes .field > span { margin-bottom: 2px; }
+.modes .opts { margin-top: 14px; }
+.modes .opts.tight { margin-top: 10px; }
+@media (max-width: 900px) { .duo { grid-template-columns: 1fr; } }
+.toolbar { position: sticky; top: 0; z-index: 4; background: var(--bg); padding: 0 0 var(--sep); margin-bottom: 0; display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; border-bottom: 1px solid var(--line); }
+.lbl { font-size: 12px; color: var(--mute); }
+#status { color: var(--mute); font-size: 13px; font-variant-numeric: tabular-nums; }
+#scanbar { display: none; align-items: center; gap: 12px; margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+#scanbar.on { display: flex; }
+#phase { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50%; }
+#scanbar .pct { font-size: 13px; color: var(--mute); font-variant-numeric: tabular-nums; white-space: nowrap; }
+#scanbar button { padding: 5px 14px; }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; flex: 1; min-width: 80px; }
+.bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+#devices { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex-basis: 100%; }
+#devices:empty { display: none; }
+.chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+.chip b { font-weight: 600; color: var(--mute); margin-left: 4px; font-variant-numeric: tabular-nums; }
+.chip.on { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.chip.on b { color: inherit; opacity: .7; }
+.chip.none { font-style: italic; }
+.chip.app { border-style: dashed; }
+#devices .hint2 { font-size: 12px; color: var(--mute); }
+#log { white-space: pre-wrap; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: var(--gap) 0 0; max-height: 240px; overflow: auto; }
+#log:empty { display: none; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--tile, 190px), 1fr)); gap: var(--gap); margin-top: var(--sep); }
+body.v-s { --tile: 130px; } body.v-m { --tile: 190px; } body.v-l { --tile: 300px; }
+body.v-s .tile .meta { font-size: 11px; padding: 7px 8px 8px; } body.v-s .tile .name { font-size: 12px; }
+body.v-s .tile .rel, body.v-s .tile .twin { display: none; }
+.grid.list { display: block; }
+table.lv { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+table.lv th { position: sticky; top: var(--tbh, 0px); background: var(--bg); z-index: 2; text-align: left; font-weight: 500; font-size: 12px; color: var(--mute); padding: 6px 10px; border-bottom: 1px solid var(--line); cursor: pointer; user-select: none; white-space: nowrap; }
+table.lv th:hover, table.lv th.sorted { color: var(--ink); }
+table.lv td { padding: 4px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+table.lv td.n, table.lv th.n { text-align: right; }
+table.lv tr { cursor: pointer; }
+table.lv tbody tr:hover td { background: var(--sel); }
+table.lv tr.sel td { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+table.lv tr.viewing td { outline: 1px dashed var(--mute); outline-offset: -1px; }
+table.lv td.th { width: 52px; padding: 3px 8px; overflow: visible; }
+.lthumb { position: relative; width: 44px; height: 33px; border-radius: 4px; overflow: visible; background: var(--field); }
+.lthumb img { width: 44px; height: 33px; object-fit: cover; border-radius: 4px; display: block; transition: transform .15s; transform-origin: left center; position: relative; }
+.lthumb:hover img { transform: scale(5.5); z-index: 20; border-radius: 1px; box-shadow: 0 8px 28px #0008; object-fit: contain; background: var(--panel); }
+table.lv td.nm { font-weight: 600; user-select: text; }
+table.lv td.fd { color: var(--mute); user-select: text; direction: rtl; text-align: left; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; cursor: pointer; user-select: none; transition: border-color .15s, box-shadow .15s; }
+.tile:hover { border-color: var(--mute); }
+.tile.sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.tile .img { aspect-ratio: 4/3; background: var(--field); display: flex; align-items: center; justify-content: center; position: relative; }
+.tile img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.tile .check { position: absolute; top: 8px; left: 8px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff; background: #0005; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; }
+.tile.sel .check { background: var(--accent); border-color: var(--accent); }
+.tile .open { position: absolute; top: 8px; right: 8px; background: #000a; color: #fff; border-radius: 6px; width: 26px; height: 24px; display: flex; align-items: center; justify-content: center; text-decoration: none; opacity: 0; transition: opacity .15s; }
+.tile:hover .open { opacity: 1; }
+.tile .open svg { width: 13px; height: 13px; }
+body.v-l .tile .open { width: 38px; height: 34px; border-radius: 8px; top: 10px; right: 10px; }
+body.v-l .tile .open svg { width: 20px; height: 20px; }
+body.v-l .tile .check { width: 28px; height: 28px; font-size: 16px; top: 10px; left: 10px; }
+body.v-s .tile .open { width: 22px; height: 20px; top: 6px; right: 6px; }
+body.v-s .tile .open svg { width: 11px; height: 11px; }
+.tile .meta { padding: 10px 12px 12px; font-size: 12px; display: grid; gap: 2px; }
+.tile .namerow { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.tile .name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: text; cursor: text; flex: 1; min-width: 0; }
+.tile .rel { user-select: text; cursor: text; }
+.tile .cp { border: 0; background: transparent; color: var(--mute); padding: 0 2px; font-size: 13px; line-height: 1; cursor: pointer; flex-shrink: 0; }
+.tile .cp:hover { color: var(--ink); }
+.tile .cp.done { color: var(--ok); }
+.tile .sub2 { color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .rel { direction: rtl; text-align: left; }
+.tile .foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 6px; margin-top: 6px; }
+.tile .foot .sub2 { flex: 1; min-width: 0; }
+.tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; }
+.tag.missing { background: color-mix(in srgb, var(--miss) 18%, transparent); color: var(--miss); }
+.tag.sha1 { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.tag.name { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+.tile .twin { color: var(--accent); }
+.tag.dmgt { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+.dmg { position: absolute; bottom: 8px; left: 8px; background: var(--warn); color: #fff; font-size: 11px; font-weight: 650; padding: 2px 8px; border-radius: 999px; }
+.tag.unreadable { background: var(--line); color: var(--mute); }
+.empty { color: var(--mute); padding: 60px 0; text-align: center; grid-column: 1 / -1; }
+.actionbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; transform: translateY(110%); transition: transform .2s; }
+.actionbar.show { transform: none; }
+.actionbar .wrap > div { background: var(--panel); border: 1px solid var(--line); border-bottom: 0; border-radius: 14px 14px 0 0; box-shadow: 0 -6px 24px #0002; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+#selcount { font-weight: 650; margin-right: 6px; }
+#viewer { position: fixed; left: 0; right: 0; bottom: 0; height: var(--vh, 45vh); z-index: 7; background: var(--panel); border-top: 1px solid var(--line); box-shadow: 0 -8px 28px #0003; display: none; flex-direction: column; }
+body.viewing #viewer { display: flex; }
+body.viewing main.wrap { padding-bottom: calc(var(--vh, 45vh) + 96px); }
+body.viewing .actionbar { bottom: var(--vh, 45vh); }
+#vgrip { height: 10px; cursor: row-resize; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+#vgrip i { width: 48px; height: 4px; border-radius: 2px; background: var(--line); }
+#vgrip:hover i { background: var(--mute); }
+#vhead { display: flex; align-items: center; gap: 10px; padding: 0 16px 8px; flex-shrink: 0; min-width: 0; }
+#vname { font-weight: 600; user-select: text; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#vpath { color: var(--mute); font-size: 12px; user-select: text; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left; flex: 1; min-width: 0; }
+#vhead button { padding: 4px 10px; }
+#vwrap { flex: 1; min-height: 0; display: flex; }
+#vbody { flex: 1; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; background: var(--field); overflow: auto; }
+#vinfo { width: 300px; flex-shrink: 0; overflow: auto; border-left: 1px solid var(--line); padding: 12px 16px; font-size: 13px; }
+#vinfo dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; }
+#vinfo dt { color: var(--mute); }
+#vinfo dd { margin: 0; user-select: text; word-break: break-word; }
+#vinfo .full { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--mute); font-size: 12px; user-select: text; word-break: break-all; }
+@media (max-width: 760px) { #vinfo { display: none; } }
+#vbody img, #vbody video { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+#vbody.actual { justify-content: flex-start; align-items: flex-start; }
+#vbody.actual img { max-width: none; max-height: none; }
+.tile.jdone, table.lv tr.jdone td { opacity: .45; }
+.tile.jdone .img::after, .tile.jskip .img::after { content: attr(data-jlabel); position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #fff; }
+.tile.jdone .img::after { background: var(--ok); }
+.tile.jskip .img::after { background: var(--warn); }
+.tile.viewing { outline: 2px dashed var(--mute); outline-offset: 2px; }
+.m-ingest, .m-copy, .m-move, .m-recycle { display: none; }
+body.ingest .m-ingest, body.copy .m-copy, body.move .m-move, body.recycle .m-recycle { display: inline-flex; }
+@media (max-width: 760px) {
+	.two { grid-template-columns: 1fr; }
+	.wrap { padding: 0 16px; }
+	.grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+	.prefixed .pre { font-size: 12px; }
+}
+</style>
+</head>
+<body class="ingest">
+<header class="top"><div class="wrap">
+	<h1>Photocopy</h1><span class="sub">immich ingestifier / photo copier</span>
+	<span class="sp"></span>
+	<select class="pill" id="acct" title="immich account to match and upload against"></select>
+</div></header>
+<main class="wrap">
+	<section class="card src">
+		<h2><svg class="hi" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 4.5a1 1 0 0 1 1-1h3.2l1.5 1.7h6.3a1 1 0 0 1 1 1v6.8a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z"/></svg>Source</h2>
+		<div class="two srcgrid">
+			<div class="field"><span>Folder</span>
+				<div class="pick"><div class="inline"><input type="text" id="root" placeholder="/volume1/..."><button id="browse">Browse</button></div><div id="browser" class="browser"></div></div>
+				<div class="scanrow"><button class="go big" id="scan">Scan</button></div>
+			</div>
+			<div class="field"><span>Skip folders <em id="skipn"></em></span>
+				<div id="tree" class="tree off"><div class="treemsg">Choose a source folder first</div></div>
+			</div>
+		</div>
+		<div id="scanbar"><span id="phase"></span><span class="pct" id="pct"></span><span class="bar"><i id="prog"></i></span><button class="danger" id="stop">Stop</button></div>
+	</section>
+	<div class="duo">
+	<section class="card filters">
+		<div class="chead"><svg class="hi" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg>Show</div>
+		<div class="frow"><span class="lbl">Status</span><span class="seg" id="filter"><button data-f="missing" class="on">Not in immich</button><button data-f="name">Filename match</button><button data-f="matched">In immich</button><button data-f="all">All</button></span></div>
+		<div class="frow"><span class="lbl">Select</span><span class="seg"><button id="selall">All</button><button id="selnone">None</button><button id="seldmg" title="Select only the damaged files currently shown">Damaged</button></span></div>
+	</section>
+	<section class="card modes">
+		<div class="tabs" id="modes"><button data-m="ingest" class="on"><svg class="hi" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7C2.5 4.2 4.8 2.5 8 2.5c.8 0 1.5.1 2.1.3A2.4 2.4 0 0 0 13 5.2c.3.5.5 1.1.5 1.8z"/><path d="M2 9.4q1.5-1 3 0t3 0 3 0 3 0"/><path d="M2.8 11.3h10.4v.7a1.8 1.8 0 0 1-1.8 1.8H4.6a1.8 1.8 0 0 1-1.8-1.8z"/></svg>Ingest to immich</button><button data-m="copy"><svg class="hi" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8.5" height="8.5" rx="1.5"/><path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg>Copy</button><button data-m="move"><svg class="hi" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2.5h5.5a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H7M1.5 8h8M7 5.5 9.5 8 7 10.5"/></svg>Move</button><button data-m="recycle"><svg class="hi" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5h11M6.3 4.5V2.8h3.4v1.7M4 4.5l.8 9h6.4l.8-9M6.8 7v4.2M9.2 7v4.2"/></svg>Recycle</button></div>
+		<div class="pane on" id="pane-ingest">
+			<div class="field"><span>Tag for new uploads</span>
+				<div class="prefixed"><span class="pre" title="Fixed - the date and time are added automatically"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 7V5a4 4 0 1 1 8 0v2h.5A1.5 1.5 0 0 1 14 8.5v5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 13.5v-5A1.5 1.5 0 0 1 3.5 7zm1.5 0h5V5a2.5 2.5 0 0 0-5 0z"/></svg><span id="tagpre"></span></span><input type="text" id="desc"></div>
+			</div>
+			<div class="opts"><label class="tog" title="Upgraded files are moved to the share's recycle bin"><input type="checkbox" id="delafter"> Delete source files once they're in immich</label></div>
+			<div class="opts tight"><label class="tog" title="Upgraded photos are applied in-place, retaining albums, tags, favourites and description"><input type="checkbox" id="albums"> Create albums from folders</label></div>
+		</div>
+		<div class="pane" id="pane-copy">
+			<div class="field"><span>Destination</span><div class="pick"><div class="inline"><input type="text" id="dest" placeholder="/volume1/..."><button id="dbrowse">Browse</button></div><div id="dbrowser" class="browser"></div></div></div>
+			<div class="opts"><label class="tog"><input type="checkbox" id="keep" checked> Keep subfolders</label></div>
+		</div>
+		<div class="pane" id="pane-recycle">
+			<div class="recrow"><button class="danger" id="recyall" disabled>Recycle images already in immich</button><span class="hint2">Exact 1:1 copies only - filename matches are left for upgrading</span></div>
+		</div>
+	</section>
+	</div>
+	<div class="toolbar">
+		<div class="tbrow"><span id="status"></span><span class="sp"></span><span class="lbl">View</span><span class="seg" id="views"><button data-v="s" title="Small thumbnails"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="4" height="4" rx=".8"/><rect x="6" y="1" width="4" height="4" rx=".8"/><rect x="11" y="1" width="4" height="4" rx=".8"/><rect x="1" y="6" width="4" height="4" rx=".8"/><rect x="6" y="6" width="4" height="4" rx=".8"/><rect x="11" y="6" width="4" height="4" rx=".8"/><rect x="1" y="11" width="4" height="4" rx=".8"/><rect x="6" y="11" width="4" height="4" rx=".8"/><rect x="11" y="11" width="4" height="4" rx=".8"/></svg></button><button data-v="m" title="Medium thumbnails"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6.3" height="6.3" rx="1"/><rect x="8.7" y="1" width="6.3" height="6.3" rx="1"/><rect x="1" y="8.7" width="6.3" height="6.3" rx="1"/><rect x="8.7" y="8.7" width="6.3" height="6.3" rx="1"/></svg></button><button data-v="l" title="Large thumbnails"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1.5" y="1.5" width="13" height="13" rx="1.6"/></svg></button><button data-v="list" title="List with details"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="3" height="3" rx=".6"/><rect x="5.5" y="2.8" width="9.5" height="1.4" rx=".7"/><rect x="1" y="6.5" width="3" height="3" rx=".6"/><rect x="5.5" y="7.3" width="9.5" height="1.4" rx=".7"/><rect x="1" y="11" width="3" height="3" rx=".6"/><rect x="5.5" y="11.8" width="9.5" height="1.4" rx=".7"/></svg></button></span></div>
+		<div id="devices"></div>
+	</div>
+	<pre id="log"></pre>
+	<div class="grid" id="grid"></div>
+</main>
+<div id="viewer">
+	<div id="vgrip" title="Drag to resize"><i></i></div>
+	<div id="vhead">
+		<span id="vname"></span><span id="vpath"></span>
+		<button id="vprev" title="Previous (&larr;)">&larr;</button><button id="vnext" title="Next (&rarr;)">&rarr;</button>
+		<button id="vsel" title="Select / deselect (Space)">Select</button>
+		<button id="vfit" title="Fit / actual size">Actual size</button>
+		<button id="vclose" title="Close (Esc)">&times;</button>
+	</div>
+	<div id="vwrap"><div id="vbody"></div><aside id="vinfo"></aside></div>
+</div>
+<div class="actionbar" id="actionbar"><div class="wrap"><div>
+	<span id="selcount"></span>
+	<span class="sp"></span>
+	<button class="m-copy primary" id="copy">Copy</button>
+	<button class="m-move primary" id="move">Move</button>
+	<button class="m-ingest primary" id="upload">Upload to immich</button>
+	<button class="m-ingest" id="upgrade">Upgrade</button>
+	<button class="m-recycle danger" id="recycle">Recycle</button>
+	<button class="danger" id="del">Delete</button>
+</div></div></div>
+<script>
+const $ = s => document.querySelector(s);
+const store = {
+	get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
+	set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+};
+let items = [], filter = "missing", sel = new Set(), poll = null, canUpload = false, devSel = new Set();
+const NONE = "__none__";
+const APPS = new Set(["Screenshot", "WhatsApp", "Facebook", "Instagram", "Snapchat", "Twitter / X", "Telegram", "Bixby Vision", "Download"]);
+for (const id of ["root", "dest"]) {
+	$("#" + id).value = store.get("tim_" + id);
+	$("#" + id).addEventListener("change", e => store.set("tim_" + id, e.target.value));
+}
+const fmt = n => n > 1e9 ? (n / 1e9).toFixed(1) + " GB" : n > 1e6 ? (n / 1e6).toFixed(1) + " MB" : Math.round(n / 1e3) + " KB";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+
+// ---- mode tabs ----
+function setMode(m) {
+	document.body.classList.toggle("ingest", m === "ingest");
+	document.body.classList.toggle("copy", m === "copy");
+	document.body.classList.toggle("move", m === "move");
+	document.body.classList.toggle("recycle", m === "recycle");
+	$("#pane-recycle").classList.toggle("on", m === "recycle");
+	document.querySelectorAll("#modes button").forEach(b => b.classList.toggle("on", b.dataset.m === m));
+	$("#pane-ingest").classList.toggle("on", m === "ingest");
+	$("#pane-copy").classList.toggle("on", m === "copy" || m === "move");
+	store.set("tim_mode", m);
+	upd();
+}
+document.querySelectorAll("#modes button").forEach(b => b.onclick = () => setMode(b.dataset.m));
+
+// ---- tag preview ----
+const folderName = () => ($("#root").value.trim().replace(/\/+$/, "").split("/").pop() || "");
+function stamp() {
+	const d = new Date(), p = n => String(n).padStart(2, "0");
+	return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}${p(d.getMinutes())}`;
+}
+function tagPreview() {
+	$("#tagpre").textContent = `src_photocopy/${stamp()} - `;
+	$("#desc").placeholder = folderName() || "Descriptor";
+}
+setInterval(tagPreview, 20000);
+$("#root").addEventListener("input", tagPreview);
+
+// ---- filtering ----
+// skip-folder tree is a live filter: nothing ticked there is shown, counted or acted on
+function live() {
+	if (!skips.size) return items;
+	const pre = [...skips].map(s => s + "/");
+	return items.filter(i => !pre.some(p => i.rel.startsWith(p)));
+}
+function shown() {
+	let list = live();
+	if (filter === "matched") list = list.filter(i => i.status === "sha1");
+	else if (filter === "missing") list = list.filter(i => i.status === "missing");
+	else if (filter === "name") list = list.filter(i => i.status === "name");
+	if (devSel.size) list = list.filter(i => devSel.has(i.source || NONE));
+	return list;
+}
+function prune() {
+	const vis = new Set(shown().map(i => i.path));
+	for (const p of [...sel]) if (!vis.has(p)) sel.delete(p);
+}
+function devices() {
+	const want = {matched: "sha1", missing: "missing", name: "name"}[filter];
+	const base = filter === "all" ? live() : live().filter(i => i.status === want);
+	const c = new Map();
+	for (const i of base) c.set(i.source || NONE, (c.get(i.source || NONE) || 0) + 1);
+	for (const d of [...devSel]) if (!c.has(d)) c.set(d, 0);
+	const list = [...c.entries()].sort((a, b) => (a[0] === NONE) - (b[0] === NONE) || b[1] - a[1]);
+	if (!items.length) { $("#devices").innerHTML = ""; return; }
+	$("#devices").innerHTML = `<span class="lbl">Source</span>` + list.map(([k, n]) =>
+		`<button class="chip${devSel.has(k) ? " on" : ""}${k === NONE ? " none" : ""}${APPS.has(k) ? " app" : ""}" data-d="${esc(k)}">${k === NONE ? "Unknown" : esc(k)}<b>${n.toLocaleString()}</b></button>`).join("") +
+		`<button class="chip" data-cams="1">Cameras only</button>` +
+		(devSel.size ? `<button class="chip" data-clear="1">Clear</button>` : "");
+	$("#devices").querySelectorAll(".chip").forEach(b => b.onclick = () => {
+		if (b.dataset.clear) devSel.clear();
+		else if (b.dataset.cams) { devSel.clear(); list.forEach(([k]) => { if (k !== NONE && !APPS.has(k)) devSel.add(k); }); }
+		else devSel.has(b.dataset.d) ? devSel.delete(b.dataset.d) : devSel.add(b.dataset.d);
+		prune(); render();
+	});
+}
+function counts() {
+	const L = live();
+	const m = L.filter(i => i.status === "missing").length;
+	const k = L.filter(i => i.status === "sha1").length;
+	const nm = L.filter(i => i.status === "name").length;
+	const u = L.length - m - k - nm;
+	const hid = items.length - L.length;
+	const dm = L.filter(i => i.damaged).length;
+	return `${L.length.toLocaleString()} files - ${m.toLocaleString()} not in immich, ${nm.toLocaleString()} filename match, ${k.toLocaleString()} in immich` + (u ? `, ${u} unreadable` : "") + (dm ? `, ${dm} damaged` : "") + (hid ? ` (${hid.toLocaleString()} in skipped folders)` : "");
+}
+let viewMode = store.get("tim_view") || "m", sortKey = "", sortDir = 1;
+const SORTS = {name: i => i.name.toLowerCase(), folder: i => i.rel.toLowerCase(), source: i => (i.source || "~").toLowerCase(),
+	camera: i => (i.camera || "~").toLowerCase(), size: i => i.size, mtime: i => i.mtime, status: i => i.status};
+function sorted(list) {
+	if (!sortKey) return list;
+	const f = SORTS[sortKey];
+	return [...list].sort((a, b) => { const x = f(a), y = f(b); return (x < y ? -1 : x > y ? 1 : 0) * sortDir; });
+}
+function setView(v) {
+	viewMode = v; store.set("tim_view", v);
+	document.body.classList.remove("v-s", "v-m", "v-l", "v-list");
+	document.body.classList.add("v-" + v);
+	document.querySelectorAll("#views button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+	if (items.length) render();
+}
+document.querySelectorAll("#views button").forEach(b => b.onclick = () => setView(b.dataset.v));
+function selToggle(path, el) {
+	sel.has(path) ? sel.delete(path) : sel.add(path);
+	el.classList.toggle("sel");
+	upd();
+}
+function renderList(list, io) {
+	const cols = [["", ""], ["name", "File"], ["folder", "Folder"], ["source", "Source"], ["camera", "Camera"], ["size", "Size", "n"], ["mtime", "Modified"], ["status", "Status"]];
+	const t = document.createElement("table");
+	t.className = "lv";
+	t.innerHTML = `<thead><tr>${cols.map(([k, l, c]) => `<th${k ? ` data-k="${k}"` : ""} class="${c || ""}${k && k === sortKey ? " sorted" : ""}">${l}${k === sortKey ? (sortDir > 0 ? " &#x25B4;" : " &#x25BE;") : ""}</th>`).join("")}</tr></thead>`;
+	const tb = document.createElement("tbody");
+	for (const it of list) {
+		const tr = document.createElement("tr");
+		const q = encodeURIComponent(it.path);
+		const d = new Date(it.mtime * 1000);
+		const label = {missing: "Not in immich", sha1: "In immich", name: "Filename match", unreadable: "Unreadable"}[it.status];
+		const folder = it.rel.includes("/") ? it.rel.slice(0, it.rel.lastIndexOf("/")) : "";
+		tr.className = sel.has(it.path) ? "sel" : "";
+		tr.dataset.path = it.path;
+		tr.innerHTML = `<td class="th"><div class="lthumb"><img alt="" data-src="/thumb?v=2&p=${q}"></div></td>
+			<td class="nm" title="${esc(it.name)}">${esc(it.name)}</td>
+			<td class="fd" title="${esc(folder)}"><bdi dir="ltr">${esc(folder)}</bdi></td>
+			<td>${esc(it.source || "Unknown")}</td>
+			<td>${esc(it.camera || "")}</td>
+			<td class="n">${fmt(it.size)}${it.status === "name" && it.twins.length === 1 && it.twins[0].size ? ` <span class="lbl">vs ${fmt(it.twins[0].size)}</span>` : ""}</td>
+			<td>${d.toLocaleDateString("en-GB")} ${d.toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"})}</td>
+			<td><span class="tag ${it.status}">${label}</span>${it.damaged ? ` <span class="tag dmgt">Damaged</span>` : ""}</td>`;
+		tr.title = info(it).map(([k, v]) => `${k}: ${v}`).join("\n");
+		tr.addEventListener("dblclick", e => { e.preventDefault(); view(it.path); });
+		tr.addEventListener("click", () => { if (!String(window.getSelection())) selToggle(it.path, tr); });
+		tb.appendChild(tr);
+		io.observe(tr.querySelector("img"));
+	}
+	t.appendChild(tb);
+	t.querySelectorAll("th[data-k]").forEach(th => th.onclick = () => {
+		const k = th.dataset.k;
+		sortDir = sortKey === k ? -sortDir : 1; sortKey = k; render();
+	});
+	$("#grid").appendChild(t);
+}
+function render() {
+	devices();
+	const list = sorted(shown());
+	$("#grid").classList.toggle("list", viewMode === "list");
+	$("#grid").innerHTML = list.length ? "" : `<div class="empty">${items.length ? "Nothing in this view" : "Scan a folder to start"}</div>`;
+	const io = new IntersectionObserver(es => es.forEach(e => {
+		if (e.isIntersecting) { const im = e.target; im.src = im.dataset.src; io.unobserve(im); }
+	}), {rootMargin: "400px"});
+	if (viewMode === "list") {
+		if (list.length) renderList(list, io);
+		upd();
+		$(".toolbar") && document.documentElement.style.setProperty("--tbh", $(".toolbar").offsetHeight + "px");
+		return;
+	}
+	const frag = document.createDocumentFragment();
+	for (const it of list) {
+		const c = document.createElement("div");
+		c.className = "tile" + (sel.has(it.path) ? " sel" : "");
+		const q = encodeURIComponent(it.path);
+		const label = {missing: "Not in immich", sha1: "In immich", name: "Filename match", unreadable: "Unreadable"}[it.status];
+		const twin = it.status === "name" ? (it.twins.length === 1 ? `<div class="sub2 twin">immich copy: ${it.twins[0].size ? fmt(it.twins[0].size) : "size unknown"}${it.twins[0].size && it.size > it.twins[0].size ? " &middot; this is bigger" : ""}</div>` : `<div class="sub2 twin">${it.twins.length} filename matches in immich</div>`) : "";
+		c.innerHTML = `<div class="img"><img alt="" data-src="/thumb?v=2&p=${q}"><span class="check">&#x2713;</span>${it.damaged ? `<span class="dmg" title="Doesn't decode - won't be uploaded or used to upgrade">Damaged</span>` : ""}<a class="open" href="#" title="Preview (or double-click)"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg></a></div>
+			<div class="meta"><div class="namerow"><div class="name" title="${esc(it.name)}">${esc(it.name)}</div><button class="cp" title="Copy full path">&#x2398;</button></div>
+			<div class="sub2 rel" title="${esc(it.rel)}"><bdi dir="ltr">${esc(it.rel)}</bdi></div>
+			<div class="sub2">${it.source ? esc(it.source) : "Unknown source"}${it.camera && it.source !== it.camera ? ` &middot; ${esc(it.camera)}` : ""}</div>
+			${twin}
+			<div class="foot"><span class="sub2">${fmt(it.size)} &middot; ${new Date(it.mtime * 1000).toLocaleDateString("en-GB")}</span><span class="tag ${it.status}">${label}</span></div></div>`;
+		c.querySelector(".cp").addEventListener("click", e => { e.stopPropagation(); copyText(it.path, e.currentTarget); });
+		c.dataset.path = it.path;
+		c.title = info(it).map(([k, v]) => `${k}: ${v}`).join("\n");
+		c.querySelector(".open").addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); view(it.path); });
+		c.addEventListener("dblclick", e => { e.preventDefault(); view(it.path); });
+		c.addEventListener("click", e => {
+			if (e.target.closest("a")) return;
+			if (String(window.getSelection())) return;  // selecting text, not the tile
+			sel.has(it.path) ? sel.delete(it.path) : sel.add(it.path);
+			c.classList.toggle("sel");
+			upd();
+		});
+		frag.appendChild(c);
+		io.observe(c.querySelector("img"));
+	}
+	$("#grid").appendChild(frag);
+	upd();
+}
+function info(it) {
+	const d = new Date(it.mtime * 1000);
+	const rows = [
+		["File", it.name],
+		["Folder", it.rel.includes("/") ? it.rel.slice(0, it.rel.lastIndexOf("/")) : "(top level)"],
+		["Status", {missing: "Not in immich", sha1: "In immich", name: "Filename match in immich", unreadable: "Unreadable"}[it.status]],
+		["Source", it.source || "Unknown"],
+		["Camera", it.camera || "None in metadata"],
+		["Size", fmt(it.size)],
+		...(it.damaged ? [["Integrity", "Damaged - doesn't decode"]] : []),
+		["Modified", d.toLocaleDateString("en-GB") + " " + d.toLocaleTimeString("en-GB")],
+	];
+	if (it.status === "name") rows.push(["immich copy", it.twins.length === 1 ? (it.twins[0].size ? fmt(it.twins[0].size) : "size unknown") : `${it.twins.length} filename matches`]);
+	return rows;
+}
+
+// ---- viewer (docked, resizable) ----
+let vpath = null;
+try { const v = store.get("tim_vh"); if (v) document.documentElement.style.setProperty("--vh", v + "px"); } catch (e) {}
+function view(p) {
+	const it = items.find(i => i.path === p);
+	if (!it) return;
+	vpath = p;
+	document.body.classList.add("viewing");
+	$("#vname").textContent = it.name;
+	$("#vpath").innerHTML = `<bdi dir="ltr">${esc(it.rel)}</bdi>`;
+	const q = encodeURIComponent(p);
+	$("#vbody").classList.remove("actual");
+	$("#vfit").textContent = "Actual size";
+	$("#vbody").innerHTML = it.kind === "video" ? `<video src="/file?p=${q}" controls autoplay muted></video>` : `<img src="/file?p=${q}" alt="">`;
+	$("#vsel").textContent = sel.has(p) ? "Deselect" : "Select";
+	$("#vinfo").innerHTML = `<dl>${info(it).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl><div class="full">${esc(it.path)}</div>`;
+	document.querySelectorAll(".tile.viewing, table.lv tr.viewing").forEach(t => t.classList.remove("viewing"));
+	const t = [...document.querySelectorAll(".tile, table.lv tbody tr")].find(t => t.dataset.path === p);
+	if (t) { t.classList.add("viewing"); t.scrollIntoView({block: "nearest"}); }
+}
+function step(d) {
+	const list = sorted(shown()), i = list.findIndex(x => x.path === vpath);
+	if (i >= 0 && list[i + d]) view(list[i + d].path);
+}
+function closeView() { document.body.classList.remove("viewing"); $("#vbody").innerHTML = ""; vpath = null; document.querySelectorAll(".tile.viewing, table.lv tr.viewing").forEach(t => t.classList.remove("viewing")); }
+$("#vclose").onclick = closeView;
+$("#vprev").onclick = () => step(-1);
+$("#vnext").onclick = () => step(1);
+$("#vsel").onclick = () => { if (!vpath) return; sel.has(vpath) ? sel.delete(vpath) : sel.add(vpath); const p = vpath; render(); view(p); };
+$("#vfit").onclick = () => { const a = $("#vbody").classList.toggle("actual"); $("#vfit").textContent = a ? "Fit" : "Actual size"; };
+document.addEventListener("keydown", e => {
+	if (!vpath || e.target.matches("input, textarea")) return;
+	if (e.key === "Escape") closeView();
+	else if (e.key === "ArrowRight") { e.preventDefault(); step(1); }
+	else if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
+	else if (e.key === " ") { e.preventDefault(); $("#vsel").click(); }
+});
+$("#vgrip").addEventListener("pointerdown", e => {
+	e.preventDefault();
+	const move = ev => {
+		const hpx = Math.max(160, Math.min(window.innerHeight - 120, window.innerHeight - ev.clientY));
+		document.documentElement.style.setProperty("--vh", hpx + "px");
+		store.set("tim_vh", String(Math.round(hpx)));
+	};
+	const up = () => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); };
+	addEventListener("pointermove", move); addEventListener("pointerup", up);
+});
+
+function copyText(t, btn) {
+	const ok = () => { btn.classList.add("done"); btn.innerHTML = "&#x2713;"; setTimeout(() => { btn.classList.remove("done"); btn.innerHTML = "&#x2398;"; }, 1200); };
+	if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(t).then(ok); return; }
+	const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select();
+	try { document.execCommand("copy"); ok(); } catch (e) {} ta.remove();
+}
+const byPath = () => new Map(items.map(i => [i.path, i]));
+function picked(status) {
+	const m = byPath();
+	return [...sel].filter(p => m.has(p) && m.get(p).status === status && (status !== "sha1" || !m.get(p).protected) && (status === "sha1" || !m.get(p).damaged));
+}
+let scanning = false;
+function controls() {
+	// disable anything that has nothing to act on
+	$("#acct").disabled = scanning || jobbing || $("#acct").options.length < 2;
+	const L = live(), cnt = {missing: 0, sha1: 0, name: 0};
+	L.forEach(i => { if (i.status in cnt) cnt[i.status]++; });
+	const has = {missing: cnt.missing, name: cnt.name, matched: cnt.sha1, all: L.length};
+	document.querySelectorAll("#filter button").forEach(b => {
+		b.disabled = scanning || !has[b.dataset.f];
+		b.title = b.disabled ? "" : `${has[b.dataset.f].toLocaleString()} files`;
+	});
+	const vis = scanning ? [] : shown();
+	$("#selall").disabled = !vis.length || vis.every(i => sel.has(i.path));
+	$("#selnone").disabled = !sel.size;
+	{ const d = vis.filter(i => i.damaged); $("#seldmg").disabled = !d.length || (d.length === sel.size && d.every(i => sel.has(i.path))); }
+	$("#scan").disabled = scanning || !$("#root").value.trim();
+	const ex = scanning ? 0 : exact().length;
+	$("#recyall").disabled = !ex;
+	$("#recyall").textContent = ex ? `Recycle ${ex.toLocaleString()} image${ex === 1 ? "" : "s"} already in immich` : "Recycle images already in immich";
+}
+function upd() {
+	controls();
+	$("#actionbar").classList.toggle("show", sel.size > 0);
+	$("#selcount").textContent = `${sel.size.toLocaleString()} selected`;
+	$("#copy").disabled = !sel.size;
+	$("#copy").textContent = `Copy ${sel.size.toLocaleString()} to folder`;
+	{ const m = byPath(), n = [...sel].filter(x => m.get(x) && !m.get(x).protected).length;
+	  $("#move").disabled = !n; $("#move").textContent = `Move ${n.toLocaleString()} to folder`; }
+	const up = picked("missing"), rb = picked("sha1");
+	$("#upload").disabled = !canUpload || !up.length;
+	$("#upload").textContent = !canUpload ? "Upload off for this account" : up.length ? `Upload ${up.length.toLocaleString()} to immich` : "Nothing to upload";
+	const ug = picked("name").filter(p => (byPath().get(p).twins || []).length === 1);
+	$("#upgrade").disabled = !canUpload || !ug.length;
+	$("#upgrade").textContent = ug.length ? `Upgrade ${ug.length.toLocaleString()} in immich` : "Upgrade";
+	const dl = [...sel].filter(p => { const i = byPath().get(p); return i && !i.protected; });
+	$("#del").disabled = !dl.length;
+	$("#del").textContent = dl.length ? `Delete ${dl.length.toLocaleString()} source file${dl.length === 1 ? "" : "s"}` : "Delete";
+	$("#recycle").disabled = !rb.length;
+	$("#recycle").textContent = rb.length ? `Recycle ${rb.length.toLocaleString()} already in immich` : "Recycle";
+	if (items.length) $("#status").textContent = counts();
+}
+document.querySelectorAll("#filter button").forEach(b => b.addEventListener("click", () => {
+	filter = b.dataset.f;
+	document.querySelectorAll("#filter button").forEach(x => x.classList.toggle("on", x === b));
+	prune(); render();
+}));
+$("#selall").onclick = () => { shown().forEach(i => sel.add(i.path)); render(); };
+$("#selnone").onclick = () => { sel.clear(); render(); };
+$("#seldmg").onclick = () => { sel.clear(); shown().filter(i => i.damaged).forEach(i => sel.add(i.path)); render(); };
+
+// ---- folder browser (slides open inside the Source card) ----
+const FOLDER = `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 3A1.5 1.5 0 0 1 3 1.5h3.2l1.6 1.8H13A1.5 1.5 0 0 1 14.5 4.8v7.7A1.5 1.5 0 0 1 13 14H3a1.5 1.5 0 0 1-1.5-1.5z"/></svg>`;
+function folderPicker(box, btn, input, onPick, onClose) {
+	const open = () => $(box).classList.contains("open");
+	const close = () => { if (open()) { $(box).classList.remove("open"); $(btn).textContent = "Browse"; onClose && onClose(); } };
+	async function go(p) {
+		const r = await fetch("/api/ls?p=" + encodeURIComponent(p || $(input).value || "")).then(r => r.json());
+		const b = $(box);
+		b.innerHTML = `<div class="cur"><button class="bup" title="Up one level"${r.parent ? ` data-p="${esc(r.parent)}"` : " disabled"}>&uarr;</button><span><bdi dir="ltr">${esc(r.path)}</bdi></span><button class="bnew" title="Create a folder here">New folder</button><button class="bdone primary">Use this folder</button></div>` +
+			`<div class="mkrow"><input type="text" placeholder="New folder name"><button class="mkok primary">Create</button><button class="mkno">Cancel</button><span class="mkerr"></span></div>` +
+			`<div class="dirs">` +
+			(r.dirs.length ? r.dirs.map(d => `<div class="d" data-p="${esc((r.path === "/" ? "" : r.path) + "/" + d)}" title="${esc(d)}">${FOLDER}${esc(d)}</div>`).join("") : `<div class="none">No subfolders</div>`) +
+			`</div>`;
+		b.querySelectorAll("[data-p]").forEach(d => d.onclick = () => go(d.dataset.p));
+		b.querySelector(".bdone").onclick = close;
+		if (r.top) { b.querySelector(".bdone").disabled = true; b.querySelector(".bnew").disabled = true; }
+		const mk = b.querySelector(".mkrow"), mi = mk.querySelector("input");
+		b.querySelector(".bnew").onclick = () => { mk.classList.add("on"); mk.querySelector(".mkerr").textContent = ""; mi.value = ""; mi.focus(); };
+		mk.querySelector(".mkno").onclick = () => mk.classList.remove("on");
+		const make = async () => {
+			const name = mi.value.trim();
+			if (!name) return;
+			let j;
+			try { j = await fetch("/api/mkdir", {method: "POST", body: JSON.stringify({parent: r.path, name})}).then(r => r.json()); }
+			catch (e) { j = {error: "Server didn't answer - " + e.message}; }
+			if (j.error) { mk.querySelector(".mkerr").textContent = j.error === "not found" ? "Server is running old code - restart the container" : j.error; return; }
+			go(j.path);
+		};
+		mk.querySelector(".mkok").onclick = make;
+		mi.onkeydown = e => { if (e.key === "Enter") make(); if (e.key === "Escape") mk.classList.remove("on"); };
+		b.classList.add("open");
+		$(btn).textContent = "Select";
+		$(input).value = r.path;
+		onPick && onPick(r.path);
+	}
+	$(btn).onclick = () => open() ? close() : go();
+	return {open, close};
+}
+const srcPicker = folderPicker("#browser", "#browse", "#root", p => { store.set("tim_root", p); tagPreview(); }, loadTree);
+const closeBrowser = srcPicker.close;
+const destPicker = folderPicker("#dbrowser", "#dbrowse", "#dest", p => { store.set("tim_dest", p); controls(); });
+
+// ---- skip-folder tree (relative paths under the source folder) ----
+let skips = new Set(), treeRoot = "";
+async function lsDirs(p) {
+	const r = await fetch("/api/ls?p=" + encodeURIComponent(p)).then(r => r.json());
+	return r.path === p ? r.dirs : null;
+}
+function nodeRow(rel, name, depth) {
+	const d = document.createElement("div");
+	d.className = "tnode" + (skips.has(rel) ? " skip" : "");
+	d.style.paddingLeft = (8 + depth * 16) + "px";
+	d.innerHTML = `<span class="tw">&#x25B8;</span><label><input type="checkbox"${skips.has(rel) ? " checked" : ""}> ${esc(name)}</label>`;
+	const kids = document.createElement("div");
+	kids.hidden = true;
+	let loaded = false;
+	d.querySelector(".tw").onclick = async () => {
+		if (!loaded) {
+			const dirs = await lsDirs(treeRoot + "/" + rel) || [];
+			dirs.forEach(n => kids.append(...nodeRow(rel + "/" + n, n, depth + 1)));
+			if (!dirs.length) d.querySelector(".tw").innerHTML = "&nbsp;";
+			loaded = true;
+		}
+		kids.hidden = !kids.hidden;
+		d.querySelector(".tw").innerHTML = kids.hidden ? "&#x25B8;" : (kids.childElementCount ? "&#x25BE;" : "&nbsp;");
+	};
+	d.querySelector("input").onchange = e => {
+		e.target.checked ? skips.add(rel) : skips.delete(rel);
+		d.classList.toggle("skip", e.target.checked);
+		skipCount();
+		if (items.length) { prune(); render(); }
+	};
+	return [d, kids];
+}
+function skipCount() { $("#skipn").textContent = skips.size ? `- ${skips.size} skipped` : ""; }
+async function loadTree() {
+	const root = $("#root").value.trim().replace(/\/+$/, "");
+	const t = $("#tree");
+	if (!root) { t.className = "tree off"; t.innerHTML = `<div class="treemsg">Choose a source folder first</div>`; return; }
+	if (root !== treeRoot) skips.clear();
+	treeRoot = root;
+	const dirs = await lsDirs(root);
+	t.innerHTML = "";
+	if (dirs === null) { t.className = "tree off"; t.innerHTML = `<div class="treemsg">Not a folder</div>`; skipCount(); return; }
+	if (!dirs.length) { t.className = "tree off"; t.innerHTML = `<div class="treemsg">No subfolders</div>`; skipCount(); return; }
+	t.className = "tree";
+	dirs.forEach(n => t.append(...nodeRow(n, n, 0)));
+	skipCount();
+}
+$("#root").addEventListener("change", loadTree);
+$("#root").addEventListener("input", controls);
+
+// ---- scan ----
+$("#scan").onclick = async () => {
+	closeBrowser();
+	const excludes = [];  // scan everything; skipped folders are filtered live
+	const r = await fetch("/api/scan", {method: "POST", body: JSON.stringify({root: $("#root").value.trim(), excludes})});
+	if (!r.ok) { $("#log").textContent = (await r.json()).error; return; }
+	items = []; sel.clear(); devSel.clear(); render(); $("#log").textContent = "";
+	watch();
+};
+function watch() {
+	clearInterval(poll);
+	scanning = true; controls();
+	poll = setInterval(async () => {
+		const s = await fetch("/api/status").then(r => r.json());
+		$("#scanbar").classList.add("on");
+		$("#phase").textContent = s.phase;
+		$("#pct").textContent = s.total ? `${s.done.toLocaleString()} / ${s.total.toLocaleString()}` : "";
+		$("#prog").style.width = s.total ? (100 * s.done / s.total) + "%" : "0";
+		$("#status").textContent = "Scanning...";
+		if (!s.running) {
+			clearInterval(poll);
+			scanning = false; controls();
+			$("#scanbar").classList.remove("on");
+			$("#stop").disabled = false; $("#stop").textContent = "Stop";
+			$("#prog").style.width = "0";
+			$("#status").textContent = "";
+			if (s.error) { $("#log").textContent = s.error; return; }
+			items = s.items; acct(s); render();
+		}
+	}, 700);
+}
+$("#stop").onclick = async () => {
+	$("#stop").disabled = true; $("#stop").textContent = "Stopping...";
+	await fetch("/api/stop", {method: "POST", body: "{}"});
+};
+let acctSig = "";
+function acct(s) {
+	const k = s.key || {}, a = s.accounts || [], el = $("#acct");
+	canUpload = !!(s.upload && k.ok);
+	const sig = JSON.stringify(a);
+	if (sig !== acctSig && document.activeElement !== el) {
+		acctSig = sig;
+		el.innerHTML = a.length ? a.map(x => `<option value="${esc(x.name)}"${x.active ? " selected" : ""}>\u25CF immich: ${esc(x.name)}${x.ok ? (x.who ? " - " + esc(x.who) : "") : " - key rejected"}${x.upload ? "" : " (match only)"}</option>`).join("")
+			: `<option>Upload off - no API key</option>`;
+	}
+	el.disabled = !a.length || a.length < 2 || scanning || jobbing;
+	el.title = k.ok ? (s.upload ? "Matching and uploading against this account" : "Matching only - uploads are off for this account") : (k.msg || "no API key");
+	el.classList.toggle("off", !k.ok);
+	el.classList.toggle("on", !!k.ok);
+}
+$("#acct").onchange = async e => {
+	const r = await fetch("/api/account", {method: "POST", body: JSON.stringify({name: e.target.value})});
+	const j = await r.json();
+	acctSig = "";
+	if (j.error) { $("#log").textContent = j.error; }
+	const had = items.length && $("#root").value.trim();
+	items = []; sel.clear(); render();
+	const s = await fetch("/api/status").then(r => r.json());
+	acct(s);
+	if (!j.error && had) $("#scan").click();
+};
+
+// ---- actions ----
+// ---- background jobs: progress strip + live per-tile outcome ----
+const JOBV = {copy: ["Copying", "Copied", "Copied"], move: ["Moving", "Moved", "Moved"], upload: ["Uploading", "Uploaded to immich", "Uploaded"], upgrade: ["Upgrading", "Upgraded in immich", "Upgraded"],
+	recycle: ["Recycling", "Moved to recycle bin", "Recycled"], delete: ["Deleting", "Deleted (to recycle bin)", "Deleted"]};
+let jobPoll = null, jobSince = 0, jobbing = false;
+function mark(path, outcome, kind) {
+	const el = [...document.querySelectorAll(".tile, table.lv tbody tr")].find(t => t.dataset.path === path);
+	if (!el) return;
+	const ok = outcome === "done";
+	el.classList.add(ok ? "jdone" : "jskip");
+	const lab = ok ? JOBV[kind][2] : (outcome.startsWith("failed") ? "Failed" : "Skipped");
+	const im = el.querySelector(".img");
+	if (im) im.dataset.jlabel = lab;
+	else el.lastElementChild.insertAdjacentHTML("beforeend", ` <span class="tag ${ok ? "sha1" : "dmgt"}">${lab}</span>`);
+	el.title = (ok ? "" : outcome + "\n\n") + el.title;
+}
+function finishJob(j) {
+	clearInterval(jobPoll); jobbing = false;
+	$("#scanbar").classList.remove("on");
+	$("#stop").disabled = false; $("#stop").textContent = "Stop";
+	scanning = false;
+	const r = j.result || {};
+	let msg = r.error ? r.error : `${JOBV[j.kind][1]}: ${r.done ?? 0} of ${j.total}` + (r.stopped ? " (stopped)" : "");
+	if (r.tag) msg += `\nTagged ${r.tagged ?? 0} as "${r.tag}"`;
+	if (r.albums) msg += `\nAlbums: ${r.albums}`;
+	if (r.deleted) msg += `\nSource files moved to recycle bin: ${r.deleted}`;
+	if (r.kept && r.kept.length) msg += `\nSource files kept ${r.kept.length}:\n  ` + r.kept.map(x => x[0] + " - " + x[1]).join("\n  ");
+	if (r.skipped && r.skipped.length) msg += `\nSkipped ${r.skipped.length}:\n  ` + r.skipped.map(x => x[0] + " - " + x[1]).join("\n  ");
+	if (r.failed && r.failed.length) msg += `\nFailed ${r.failed.length}:\n  ` + r.failed.map(x => x[0] + " - " + x[1]).join("\n  ");
+	fetch("/api/status").then(r => r.json()).then(s => { items = s.items; sel.clear(); render(); $("#log").textContent = msg; });
+}
+function pollJob() {
+	jobbing = true; scanning = true; controls();
+	$("#scanbar").classList.add("on");
+	clearInterval(jobPoll);
+	jobPoll = setInterval(async () => {
+		const j = await fetch("/api/job?since=" + jobSince).then(r => r.json());
+		jobSince = j.next;
+		j.log.forEach(([p, o]) => mark(p, o, j.kind));
+		$("#phase").textContent = JOBV[j.kind] ? JOBV[j.kind][0] : "Working";
+		$("#pct").textContent = `${j.done.toLocaleString()} / ${j.total.toLocaleString()}`;
+		$("#prog").style.width = j.total ? (100 * j.done / j.total) + "%" : "0";
+		if (!j.running) finishJob(j);
+	}, 600);
+}
+async function act(url, paths, payload, verb, btn) {
+	if (jobbing) return;
+	btn.disabled = true;
+	$("#log").textContent = "";
+	const r = await fetch(url, {method: "POST", body: JSON.stringify(Object.assign({paths}, payload))});
+	const j = await r.json();
+	if (j.error) { $("#log").textContent = j.error; upd(); return; }
+	jobSince = 0;
+	const kind = url.split("/").pop();
+	$("#phase").textContent = JOBV[kind][0];
+	$("#pct").textContent = `0 / ${paths.length.toLocaleString()}`;
+	$("#prog").style.width = "0";
+	$("#actionbar").classList.remove("show");
+	pollJob();
+}
+$("#copy").onclick = () => {
+	const dest = $("#dest").value.trim();
+	if (!dest) { $("#log").textContent = "Set a destination folder first"; return; }
+	act("/api/copy", [...sel], {dest, keep_tree: $("#keep").checked}, `Copied to ${dest}:`, $("#copy"));
+};
+$("#move").onclick = () => {
+	const dest = $("#dest").value.trim();
+	if (!dest) { $("#log").textContent = "Set a destination folder first"; return; }
+	const m = byPath(), p = [...sel].filter(x => m.get(x) && !m.get(x).protected);
+	act("/api/move", p, {dest, keep_tree: $("#keep").checked}, `Moved to ${dest}:`, $("#move"));
+};
+$("#upload").onclick = () => {
+	const descriptor = $("#desc").value.trim() || folderName();
+	if ($("#delafter").checked && !confirm(`Upload ${picked("missing").length} files and move each source file to the share's recycle bin once it's in immich?`)) return;
+	act("/api/upload", picked("missing"), {descriptor, albums: $("#albums").checked, delete_after: $("#delafter").checked}, "Uploaded to immich:", $("#upload"));
+};
+$("#upgrade").onclick = () => {
+	const p = picked("name").filter(x => (byPath().get(x).twins || []).length === 1);
+	if (!confirm(`Upgrade ${p.length} immich photos with these files?\n\nEach is uploaded, gets the old asset's albums, favourite, stack, shared links, tags and description, then the old asset goes to immich's trash.` + ($("#delafter").checked ? `\n\nThe source files then go to the share's recycle bin.` : ""))) return;
+	act("/api/upgrade", p, {descriptor: $("#desc").value.trim() || folderName(), delete_after: $("#delafter").checked}, "Upgraded in immich:", $("#upgrade"));
+};
+$("#del").onclick = () => {
+	const m = byPath(), p = [...sel].filter(x => m.get(x) && !m.get(x).protected);
+	const notIn = p.filter(x => m.get(x).status !== "sha1").length;
+	if (!confirm(`Delete ${p.length} source file${p.length === 1 ? "" : "s"}?\n\nThey go to the share's recycle bin (recoverable in UGOS until it's emptied).` +
+		(notIn ? `\n\n${notIn} of them are NOT in immich - this may be the only copy.` : ""))) return;
+	act("/api/delete", p, {}, "Deleted (to recycle bin):", $("#del"));
+};
+function exact() { return live().filter(i => i.status === "sha1" && !i.protected); }
+$("#recyall").onclick = () => {
+	const p = exact().map(i => i.path);
+	if (!p.length) return;
+	if (!confirm(`Move ${p.length} source files to the share's recycle bin?\n\nOnly exact 1:1 copies of photos already in immich - filename matches / upgradable files are left alone. Each is re-hashed before it's moved.`)) return;
+	act("/api/recycle", p, {}, "Moved to recycle bin:", $("#recyall"));
+};
+$("#recycle").onclick = () => {
+	const p = picked("sha1");
+	if (!confirm(`Move ${p.length} files to the share's recycle bin? Each is re-hashed and only moved if its bytes are in immich.`)) return;
+	act("/api/recycle", p, {}, "Moved to recycle bin:", $("#recycle"));
+};
+
+setMode(store.get("tim_mode") || "ingest");
+setView(viewMode);
+tagPreview();
+loadTree();
+fetch("/api/job?since=0").then(r => r.json()).then(j => { if (j.running) { jobSince = 0; pollJob(); } });
+fetch("/api/status").then(r => r.json()).then(s => {
+	acct(s);
+	if (s.running) watch();
+	else if (s.items && s.items.length) { items = s.items; $("#root").value = s.root; tagPreview(); loadTree(); render(); }
+});
+</script>
+</body>
+</html>
