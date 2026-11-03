@@ -31,7 +31,8 @@ Add missing photos, upgrade filename matches in-place, maintain existing metadat
 |---|---|
 | `app.py` | server (Python stdlib + Pillow) |
 | `index.html` | the page |
-| `Dockerfile` | python:3.12-slim + exiftool, psql, ffmpeg, Pillow, pillow-heif |
+| `Dockerfile` | python:3.12-slim + exiftool, psql, ffmpeg |
+| `requirements.txt` | pinned Pillow and pillow-heif - kept current by Dependabot |
 | `env.example` | settings template |
 
 ## Setup
@@ -140,7 +141,7 @@ Proxy a hostname to `BIND_IP:PORT`. No auth built in - keep it LAN / VPN only.
 
 - `index.html` changed - reload the page
 - `app.py` changed - **Restart** the container (`/app` is mounted, no rebuild)
-- `Dockerfile` or compose changed - **Redeploy**
+- `Dockerfile`, `requirements.txt` or compose changed - **Redeploy**
 
 ## Settings
 
