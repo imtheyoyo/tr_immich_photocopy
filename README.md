@@ -1,8 +1,8 @@
-# PhotoCopy
+# Immich PhotoCopy
 
-Web app for a NAS running immich. Point it at a folder, see which photos/videos aren't in the chosen immich account, then act on them.
+Web app for a NAS running immich. Point it at a folder, see which photos/videos aren't in the chosen immich account then decide what to do with them.
 
-Upgrade filename matches in-place, automatically create albums from folders and tag uploads, copy, move or recycle source files and flag damaged files. Works with multiple immich accounts.
+Add missing photos, upgrade filename matches in-place, maintain existing metadata, create albums from folders, copy/move/recycle source files, tag uploads for easy management and flag any damaged files. Works with multiple immich accounts.
 
 ![PhotoCopy](docs/screenshot.png)
 
