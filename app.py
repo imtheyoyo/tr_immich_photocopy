@@ -13,7 +13,7 @@ whose bytes are confirmed in Immich at that moment, and never inside a folder Im
 Env (normally from .env next to the compose file):
   PGHOST / PGUSER / PGPASSWORD / PGDATABASE   Immich Postgres
   IMMICH_URL       default http://immich_server:2283
-  IMMICH_KEY_<NAME>  one per immich account, e.g. IMMICH_KEY_MAIN, IMMICH_KEY_MEMORIES - picked in the page
+  IMMICH_KEY_<NAME>  one per immich account, e.g. IMMICH_KEY_Main, IMMICH_KEY_Family - picked in the page
                    (asset.upload, asset.read, user.read, tag.create, tag.asset; album.create +
                    albumAsset.create for folder -> album)
   IMMICH_DEFAULT   name selected at startup, default the first account that can upload
@@ -23,7 +23,7 @@ Env (normally from .env next to the compose file):
                    (ALLOWED_ROOT still read)
   BLOCKED_DEST     comma list of destination prefixes refused, default /volume1/appdata
   LIBRARY_PATHS    paths Immich reads - never moved or deleted from
-                   default /volume1/appdata/immich,/volume1/photos/exports_lr,/volume1/memories
+                   default /volume1/appdata/immich
   CACHE_DIR        thumbnail cache, default /cache
   PORT             default 8791
   CHECKSUMS_FILE   hex SHA-1 list used instead of Postgres (testing)
@@ -55,7 +55,7 @@ def _paths(v):
 
 ROOTS = _paths(os.environ.get("ALLOWED_ROOTS") or os.environ.get("ALLOWED_ROOT") or "/volume1")
 BLOCKED_DEST = _paths(os.environ.get("BLOCKED_DEST", "/volume1/appdata"))
-LIBRARY_PATHS = _paths(os.environ.get("LIBRARY_PATHS", "/volume1/appdata/immich,/volume1/photos/exports_lr,/volume1/memories"))
+LIBRARY_PATHS = _paths(os.environ.get("LIBRARY_PATHS", "/volume1/appdata/immich"))
 IMMICH_URL = os.environ.get("IMMICH_URL", "http://immich_server:2283").rstrip("/")
 
 
