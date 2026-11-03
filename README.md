@@ -13,7 +13,15 @@ Web app for a NAS running immich. Point it at a folder, see which photos/videos 
 - **Damaged files** - JPEGs that don't decode are flagged and never uploaded or used to upgrade
 - **Accounts** - several immich keys, picked from a dropdown in the header
 
-Never moves, recycles or deletes anything under `LIBRARY_PATHS`.
+## Safety
+
+- **immich database** - read only (enforced with the read-only role in setup step 3)
+- **immich assets** - nothing is deleted, except Upgrade sending the replaced asset to immich's trash (recoverable until the trash empties)
+- **Undo** - uploads carry a `src_photocopy/...` tag, upgrades also `src_photocopy/upgraded`, and every upgrade is logged with old and new asset ids in `CACHE_DIR/upgrades.jsonl`
+- **Not undone by tags** - albums made by "Create albums from folders"; favourite / stack / shared links moved onto an upgraded asset
+- **Local files** - never hard-deleted: Delete, Recycle and "Delete source files" all move to the share's `#recycle`
+- **Confirmation** - every action that sends source files to `#recycle` asks first, with a red button; Move asks too (blue)
+- **`LIBRARY_PATHS`** - never moved, recycled or deleted from
 
 ## Files
 
@@ -41,18 +49,36 @@ Permissions:
 
 Match-only accounts (external-library accounts) only need `asset.read` and `user.read`.
 
-### 3. Postgres login
+### 3. Postgres login (read-only)
 
-From immich's own `.env`:
+PhotoCopy only ever reads immich's database. Give it its own read-only role so that's enforced, not just promised.
 
-| PhotoCopy | immich `.env` |
+Open a psql shell in immich's Postgres container (user and database from immich's `.env`: `DB_USERNAME`, `DB_DATABASE_NAME`):
+
+```sh
+docker exec -it immich_postgres psql -U <DB_USERNAME> -d <DB_DATABASE_NAME>
+```
+
+Then:
+
+```sql
+CREATE ROLE photocopy LOGIN PASSWORD '<a new password>';
+GRANT CONNECT ON DATABASE <DB_DATABASE_NAME> TO photocopy;
+GRANT USAGE ON SCHEMA public TO photocopy;
+GRANT SELECT ON asset, asset_exif TO photocopy;
+ALTER ROLE photocopy SET default_transaction_read_only = on;
+```
+
+`asset` / `asset_exif` are the table names in current immich; older versions used `assets` / `exif`.
+
+| PhotoCopy | value |
 |---|---|
 | `PGHOST` | the Postgres container name, usually `immich_postgres` |
-| `PGUSER` | `DB_USERNAME` |
-| `PGPASSWORD` | `DB_PASSWORD` |
-| `PGDATABASE` | `DB_DATABASE_NAME` |
+| `PGUSER` | `photocopy` |
+| `PGPASSWORD` | the password above |
+| `PGDATABASE` | immich's `DB_DATABASE_NAME` |
 
-Read-only access is all it needs.
+Using immich's own `DB_USERNAME` / `DB_PASSWORD` also works, but that login can write.
 
 ### 4. Project folder
 

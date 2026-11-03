@@ -804,12 +804,12 @@ $("#acct").onchange = async e => {
 };
 
 // ---- centred confirm ----
-function ask(okLabel, msg) {
+function ask(okLabel, msg, danger) {
 	return new Promise(done => {
 		const m = $("#modal"), [first, ...rest] = msg.split("\n");
 		m.querySelector(".mmsg").innerHTML = `<b>${esc(first)}</b>` + esc(rest.join("\n").replace(/^\n+/, ""));
 		$("#mok").textContent = okLabel;
-		$("#mok").className = /Delete|Recycle/.test(okLabel) ? "danger" : "primary";
+		$("#mok").className = (danger ?? /Delete|Recycle/.test(okLabel)) ? "danger" : "primary";
 		const end = v => { m.classList.remove("on"); document.removeEventListener("keydown", key, true); done(v); };
 		const key = e => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); end(false); } };
 		$("#mok").onclick = () => end(true);
@@ -886,20 +886,21 @@ $("#copy").onclick = () => {
 	if (!dest) { $("#log").textContent = "Set a destination folder first"; return; }
 	act("/api/copy", [...sel], {dest, keep_tree: $("#keep").checked}, `Copied to ${dest}:`, $("#copy"));
 };
-$("#move").onclick = () => {
+$("#move").onclick = async () => {
 	const dest = $("#dest").value.trim();
 	if (!dest) { $("#log").textContent = "Set a destination folder first"; return; }
 	const m = byPath(), p = [...sel].filter(x => m.get(x) && !m.get(x).protected);
+	if (!await ask("Move", `Move ${p.length} file${p.length === 1 ? "" : "s"} to ${dest}?\n\nThey're taken out of the source folder.` + ($("#keep").checked ? " Subfolders are kept." : ""))) return;
 	act("/api/move", p, {dest, keep_tree: $("#keep").checked}, `Moved to ${dest}:`, $("#move"));
 };
 $("#upload").onclick = async () => {
 	const descriptor = $("#desc").value.trim() || folderName();
-	if ($("#delafter").checked && !await ask("Upload", `Upload ${picked("missing").length} files and move each source file to the share's recycle bin once it's in immich?`)) return;
+	if ($("#delafter").checked && !await ask("Upload", `Upload ${picked("missing").length} files and move each source file to the share's recycle bin once it's in immich?`, true)) return;
 	act("/api/upload", picked("missing"), {descriptor, albums: $("#albums").checked, delete_after: $("#delafter").checked}, "Uploaded to immich:", $("#upload"));
 };
 $("#upgrade").onclick = async () => {
 	const p = picked("name").filter(x => (byPath().get(x).twins || []).length === 1);
-	if (!await ask("Upgrade", `Upgrade ${p.length} immich photos with these files?\n\nEach is uploaded, gets the old asset's albums, favourite, stack, shared links, tags and description, then the old asset goes to immich's trash.` + ($("#delafter").checked ? `\n\nThe source files then go to the share's recycle bin.` : ""))) return;
+	if (!await ask("Upgrade", `Upgrade ${p.length} immich photos with these files?\n\nEach is uploaded, gets the old asset's albums, favourite, stack, shared links, tags and description, then the old asset goes to immich's trash.` + ($("#delafter").checked ? `\n\nThe source files then go to the share's recycle bin.` : ""), $("#delafter").checked)) return;
 	act("/api/upgrade", p, {descriptor: $("#desc").value.trim() || folderName(), delete_after: $("#delafter").checked}, "Upgraded in immich:", $("#upgrade"));
 };
 $("#del").onclick = async () => {
