@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PhotoCopy</title>
+<title>Immich PhotoCopy</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20x%3D%224%22%20y%3D%2214%22%20width%3D%2240%22%20height%3D%2232%22%20rx%3D%225%22%20fill%3D%22%232f6fdb%22%20opacity%3D%22.45%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2220%22%20width%3D%2242%22%20height%3D%2234%22%20rx%3D%225%22%20fill%3D%22%232f6fdb%22/%3E%3Ccircle%20cx%3D%2231%22%20cy%3D%2231%22%20r%3D%224.5%22%20fill%3D%22%23fff%22/%3E%3Cpath%20d%3D%22M22%2050%20l11-12%207%207%206-5%2010%2010z%22%20fill%3D%22%23fff%22/%3E%3C/svg%3E">
 <!-- Icons: Lucide (lucide.dev), ISC licence -->
 <style>
@@ -31,6 +31,8 @@ select.pill { appearance: none; -webkit-appearance: none; font: inherit; font-si
 select.pill option { background: var(--panel); color: var(--ink); }
 select.pill:disabled { cursor: default; opacity: .6; }
 main.wrap { padding-top: var(--gap); padding-bottom: 96px; }
+.foot { margin-top: 40px; text-align: center; font-size: 11px; color: var(--mute); opacity: .7; }
+.foot a { color: inherit; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: var(--gap); }
 .card h2 { font-size: 14px; font-weight: 650; margin: 0 0 12px; }
 .src { position: relative; }
@@ -258,7 +260,7 @@ body.ingest .m-ingest, body.copy .m-copy, body.move .m-move, body.recycle .m-rec
 </head>
 <body class="ingest">
 <header class="top"><div class="wrap">
-	<h1>PhotoCopy</h1><span class="sub">immich photo ingestifier/copier/mover/recycler</span>
+	<h1>Immich PhotoCopy</h1><span class="sub">immich photo ingestifier/copier/mover/recycler</span>
 	<span class="sp"></span>
 	<select class="pill" id="acct" title="immich account to match and upload against"></select>
 </div></header>
@@ -306,6 +308,7 @@ body.ingest .m-ingest, body.copy .m-copy, body.move .m-move, body.recycle .m-rec
 	</div>
 	<pre id="log"></pre>
 	<div class="grid" id="grid"></div>
+	<footer class="foot">Immich PhotoCopy &middot; Not affiliated with immich &middot; Use at your own risk - keep backups &middot; <a href="https://github.com/triffski/tr_immich_photocopy" target="_blank" rel="noopener">GitHub</a></footer>
 </main>
 <div id="viewer">
 	<div id="vgrip" title="Drag to resize"><i></i></div>
@@ -906,8 +909,8 @@ $("#upgrade").onclick = async () => {
 $("#del").onclick = async () => {
 	const m = byPath(), p = [...sel].filter(x => m.get(x) && !m.get(x).protected);
 	const notIn = p.filter(x => m.get(x).status !== "sha1").length;
-	if (!await ask("Delete", `Delete ${p.length} source file${p.length === 1 ? "" : "s"}?\n\nThey go to the share's recycle bin (recoverable in UGOS until it's emptied).` +
-		(notIn ? `\n\n${notIn} of them are NOT in immich - this may be the only copy.` : ""))) return;
+	if (!await ask("Delete", `Delete ${p.length} source file${p.length === 1 ? "" : "s"}?\nDeletions go to the share's recycle bin (recoverable until it's emptied).` +
+		(notIn ? `\n\nNOT FOUND in immich: ${notIn} file${notIn === 1 ? "" : "s"} - this may be the only copy!` : ""))) return;
 	act("/api/delete", p, {}, "Deleted (to recycle bin):", $("#del"));
 };
 function exact() { return live().filter(i => i.status === "sha1" && !i.protected); }
