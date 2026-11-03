@@ -1,28 +1,30 @@
 # Immich PhotoCopy
 
-Web app for a NAS running immich. Point it at a folder, see which photos/videos aren't in the chosen immich account then decide what to do with them.
+Web/Docker app for a NAS running immich. Point it at a folder, see which photos/videos aren't in the selected immich account then decide how to handle them.
 
-Add missing photos, upgrade filename matches in-place, maintain existing metadata, create albums from folders, copy/move/recycle source files, tag uploads for easy management and flag any damaged files. Works with multiple immich accounts.
+Add missing photos, upgrade filename matches in-place, maintain existing metadata, create albums from folders, copy/move/recycle source files, tag uploads for easy management and flag any damaged files. 
+
+Works with multiple immich accounts.
 
 ![PhotoCopy](docs/screenshot.png)
 
-- **Matching** - SHA-1 of each file vs the checksums immich stores for that account (read from immich's Postgres)
-- **Filename match** - same filename in immich but different bytes - candidates for an in-place upgrade
-- **Ingest** - upload to immich, tagged `src_photocopy/<date> - <descriptor>`, optional albums from folders
-- **Upgrade** - replaces the immich asset with the new file, keeping albums, tags, favourites and description; old asset goes to immich's trash
-- **Copy/Move** - to any folder under the allowed roots, optionally keeping subfolders
-- **Recycle/Delete** - source files go to the share's `#recycle`, never deleted outright
+- **Matching** - compares the SHA-1 of each file to immich's checksums for that account (read via immich Postgres)
+- **Filename match** - same filename in immich but different bytes - candidates for an in-place upgrade, maintaining existing metadata
+- **Ingest** - upload to immich, tagged `src_photocopy/<date> - <descriptor>`, optionally creating albums from folders
+- **Upgrade** - replaces the immich asset with the new file, keeping albums/tags/favourites/description and with the old asset going to immich's trash
+- **Copy/Move** - to any folder under the allowed roots, optionally keeping subfolder structure
+- **Recycle/Delete** - source files go to the share's `#recycle` and are never deleted outright
 - **Damaged files** - JPEGs that don't decode are flagged and never uploaded or used to upgrade
 - **Accounts** - compatible with multiple immich API keys, picked from a dropdown in the header
 
 ## Safety
 
-- **immich database** - read only (enforced with the read-only role in setup step 3)
+- **immich database** - read only (enforced with the [read-only role in setup step 3](#3-postgres-login-read-only))
 - **immich assets** - nothing is deleted, except Upgrade sending the replaced asset to immich's trash (recoverable until the trash empties)
-- **Undo** - uploads carry a `src_photocopy/...` tag, upgrades also `src_photocopy/upgraded`, and every upgrade is logged with old and new asset ids in `CACHE_DIR/upgrades.jsonl`
-- **Not undone by tags** - albums made by "Create albums from folders"; favourite / stack / shared links moved onto an upgraded asset
+- **Undo** - uploads carry a `src_photocopy/...` tag, upgrades get `src_photocopy/upgraded` and every upgrade is logged with both old and new asset ids in `CACHE_DIR/upgrades.jsonl`
+- **Not undoable with tags** - albums made by "Create albums from folders"; favourites/stacks/shared links that have moved onto an upgraded asset
 - **Local files** - never hard-deleted: Delete, Recycle and "Delete source files" all move to the share's `#recycle`
-- **Confirmation** - every action that sends source files to `#recycle` asks first, with a red button; Move asks too (blue)
+- **Confirmation** - every action that sends source files to `#recycle` asks first, with a BIG RED BUTTON. Move also asks, but in a friendlier shade of blue
 - **`LIBRARY_PATHS`** - never moved, recycled or deleted from
 
 ## Files
@@ -131,7 +133,7 @@ Immich key Main: OK - <account name>
 PhotoCopy on :8791, roots /volume1, active account Main
 ```
 
-`key rejected` = wrong key or missing permission. A scan stuck at "Reading immich checksums" = wrong Postgres details.
+`key rejected` = wrong key or missing permission. A scan that fails with a Postgres error = wrong Postgres details.
 
 ### 7. Reverse proxy (optional)
 
@@ -141,7 +143,7 @@ Proxy a hostname to `BIND_IP:PORT`. No auth built in - keep it LAN / VPN only.
 
 - `index.html` changed - reload the page
 - `app.py` changed - **Restart** the container (`/app` is mounted, no rebuild)
-- `Dockerfile`, `requirements.txt` or compose changed - **Redeploy**
+- `.env`, `Dockerfile`, `requirements.txt` or compose changed - **Redeploy** (Restart keeps the old `.env` values)
 
 ## Settings
 
