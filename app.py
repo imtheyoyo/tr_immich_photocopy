@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Photocopy (tr-photocopy) - web app: point it at a folder on a NAS, see which photos/videos
+PhotoCopy (tr-photocopy) - web app: point it at a folder on a NAS, see which photos/videos
 are not in your Immich account (with previews), then copy them to a folder, upload them to
 Immich, or move the ones already in Immich to the share's recycle bin.
 
@@ -731,7 +731,7 @@ def upload_files(paths, descriptor, albums, root, delete_after=False):
     set_status(ok, "sha1")
     if created:
         d = (descriptor or "").replace("/", "-").strip()
-        res["tag"] = "src_photocopy/" + time.strftime("%Y-%m-%d %H%M") + (f" - {d}" if d else "")
+        res["tag"] = "src_photocopy/" + time.strftime("%Y-%m-%d") + (f" - {d}" if d else "")
         try:
             res["tagged"] = tag_assets(res["tag"], created)
         except Exception as e:
@@ -807,7 +807,7 @@ def upgrade_files(paths, descriptor, delete_after=False):
     set_status(ok, "sha1")
     if new_ids:
         d = (descriptor or "").replace("/", "-").strip()
-        res["tag"] = "src_photocopy/" + time.strftime("%Y-%m-%d %H%M") + " - upgrade" + (f" - {d}" if d else "")
+        res["tag"] = "src_photocopy/" + time.strftime("%Y-%m-%d") + " - upgrade" + (f" - {d}" if d else "")
         try:
             res["tagged"] = tag_assets(res["tag"], new_ids)
             tag_assets("src_photocopy/upgraded", new_ids)  # one standing tag for every upgrade, all batches
@@ -942,7 +942,7 @@ class H(BaseHTTPRequestHandler):
                 s["items"] = []
             ks = key_state.get(ACTIVE)
             if ACTIVE and (not ks or (not ks["ok"] and time.time() - ks["at"] > 30)):
-                check_key(ACTIVE)  # e.g. Immich was still starting when Photocopy came up
+                check_key(ACTIVE)  # e.g. Immich was still starting when PhotoCopy came up
                 ks = key_state.get(ACTIVE)
             s["upload"] = can_upload()
             s["key"] = {"ok": bool(ks and ks["ok"]), "msg": ks["msg"] if ks else "no API key"}
@@ -1085,5 +1085,5 @@ if __name__ == "__main__":
     check_key()
     for n, st in key_state.items():
         print(f"Immich key {n}: {'OK - ' if st['ok'] else ''}{st['msg']}{' (no upload)' if n in NO_UPLOAD else ''}", flush=True)
-    print(f"Photocopy on :{PORT}, roots {', '.join(ROOTS)}, active account {ACTIVE or 'none'}", flush=True)
+    print(f"PhotoCopy on :{PORT}, roots {', '.join(ROOTS)}, active account {ACTIVE or 'none'}", flush=True)
     ThreadingHTTPServer(("0.0.0.0", PORT), H).serve_forever()

@@ -1,10 +1,12 @@
-# Photocopy
+# PhotoCopy
 
 Web app for a NAS running immich. Point it at a folder, see which photos/videos aren't in an immich account, then act on them.
 
+![PhotoCopy](docs/screenshot.png)
+
 - **Matching** - SHA-1 of each file vs the checksums immich stores for that account (read from immich's Postgres)
 - **Filename match** - same filename in immich but different bytes - candidates for an in-place upgrade
-- **Ingest** - upload to immich, tagged `src_photocopy/<date time> - <descriptor>`, optional albums from folders
+- **Ingest** - upload to immich, tagged `src_photocopy/<date> - <descriptor>`, optional albums from folders
 - **Upgrade** - replaces the immich asset with the new file, keeping albums, tags, favourites and description; old asset goes to immich's trash
 - **Copy / Move** - to any folder under the allowed roots, optionally keeping subfolders
 - **Recycle / Delete** - source files go to the share's `#recycle`, never deleted outright
@@ -43,7 +45,7 @@ Match-only accounts (external-library accounts) only need `asset.read` and `user
 
 From immich's own `.env`:
 
-| Photocopy | immich `.env` |
+| PhotoCopy | immich `.env` |
 |---|---|
 | `PGHOST` | the Postgres container name, usually `immich_postgres` |
 | `PGUSER` | `DB_USERNAME` |
@@ -97,7 +99,7 @@ Deploy the project. The log should show one line per key:
 
 ```
 Immich key Main: OK - <account name>
-Photocopy on :8791, roots /volume1, active account Main
+PhotoCopy on :8791, roots /volume1, active account Main
 ```
 
 `key rejected` = wrong key or missing permission. A scan stuck at "Reading immich checksums" = wrong Postgres details.
