@@ -119,7 +119,7 @@ networks:
 
 - **Volumes** - mount every root in `ALLOWED_ROOTS` at the same path inside the container
 - **Network** - must be immich's network, so `immich_server` and the Postgres container resolve
-- **`${…}` values** - compose only reads them from a file named exactly `.env`; UGOS doesn't always do that, so each has a fallback - edit the fallbacks if `.env` changes don't take effect
+- **`${…}` values** - read from `.env` next to the compose file; the values after `:-` are fallbacks
 
 ### 6. Start
 
@@ -161,3 +161,8 @@ All in `.env` - see the comments in `env.example`.
 - **External-library accounts** - uploading to them puts files in immich's upload storage, not their library folders; Copy / Move into the library folder and rescan the library in immich instead
 - **Recycle** - files go to `<root>/<share>/#recycle/...`, the UGOS share recycle bin
 - **Account switch** - clears the results and rescans the current folder
+
+> [!WARNING]
+> Use at your own risk - test on a copy and keep backups. Not affiliated with immich!!
+
+Developed and tested on a UGREEN DXP4800 Plus (UGOS 1.21.0.0190) with immich 3.3.5.
