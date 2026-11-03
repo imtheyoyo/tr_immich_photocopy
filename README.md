@@ -1,6 +1,8 @@
 # PhotoCopy
 
-Web app for a NAS running immich. Point it at a folder, see which photos/videos aren't in an immich account, then act on them.
+Web app for a NAS running immich. Point it at a folder, see which photos/videos aren't in the chosen immich account, then act on them.
+
+Upgrade filename matches in-place, automatically create albums from folders and tag uploads, copy, move or recycle source files and flag damaged files. Works with multiple immich accounts.
 
 ![PhotoCopy](docs/screenshot.png)
 
@@ -8,10 +10,10 @@ Web app for a NAS running immich. Point it at a folder, see which photos/videos 
 - **Filename match** - same filename in immich but different bytes - candidates for an in-place upgrade
 - **Ingest** - upload to immich, tagged `src_photocopy/<date> - <descriptor>`, optional albums from folders
 - **Upgrade** - replaces the immich asset with the new file, keeping albums, tags, favourites and description; old asset goes to immich's trash
-- **Copy / Move** - to any folder under the allowed roots, optionally keeping subfolders
-- **Recycle / Delete** - source files go to the share's `#recycle`, never deleted outright
+- **Copy/Move** - to any folder under the allowed roots, optionally keeping subfolders
+- **Recycle/Delete** - source files go to the share's `#recycle`, never deleted outright
 - **Damaged files** - JPEGs that don't decode are flagged and never uploaded or used to upgrade
-- **Accounts** - several immich keys, picked from a dropdown in the header
+- **Accounts** - compatible with multiple immich API keys, picked from a dropdown in the header
 
 ## Safety
 
