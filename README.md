@@ -2,9 +2,9 @@
 
 Web/Docker app for a NAS running immich. Point it at a folder, see which photos/videos aren't in the selected immich account then decide how to handle them.
 
-Add missing photos, upgrade filename matches in-place, maintain existing metadata, create albums from folders, copy/move/recycle source files, tag uploads for easy management and flag any damaged files. 
+Add missing photos, upgrade filename matches in-place, maintain existing metadata, create albums from folders, copy/move/recycle source files, tag uploads for easy management and flag any damaged files. Works with multiple immich accounts. 
 
-Works with multiple immich accounts.
+Co-developed with Claude Opus 5.5.
 
 ![PhotoCopy](docs/screenshot.png)
 
