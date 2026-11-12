@@ -120,7 +120,7 @@ button:disabled { opacity: .4; cursor: default; }
 .modes .tabs button:first-child { padding-left: 0; }
 .filters { display: flex; flex-direction: column; }
 .tbrow { display: flex; align-items: center; gap: 12px; flex-basis: 100%; }
-.tbrow #views button { height: 32px; }
+.tbrow #views button, .tbrow #groups button { height: 32px; }
 .modes .opts { margin-top: 18px; }
 .modes .opts.tight { margin-top: 14px; }
 .modes .tog { gap: 10px; font-size: 14px; }
@@ -209,6 +209,35 @@ body.v-s .tile .open svg { width: 11px; height: 11px; }
 .tag.dmgt { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
 .dmg { position: absolute; bottom: 8px; left: 8px; background: var(--warn); color: #fff; font-size: 11px; font-weight: 650; padding: 2px 8px; border-radius: 999px; }
 .tag.unreadable { background: var(--line); color: var(--mute); }
+.tag.verified { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.tag.unsure { background: color-mix(in srgb, var(--miss) 18%, transparent); color: var(--miss); }
+.tag.differs { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+.tag.multi { background: var(--line); color: var(--mute); }
+.tag.appr { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.sub2.twin { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sub2.twin > span:first-child { min-width: 0; flex: 1 1 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ghead { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 2px 6px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--mute); }
+.ghead b { font-size: 14px; color: var(--ink); }
+.ghead .sp { flex: 1; }
+.ghead button { padding: 3px 10px; font-size: 12px; }
+.ghead + .tile, .grid > .ghead:first-child { margin-top: 0; }
+table.lv tr.grp td { background: var(--bg); padding: 14px 10px 6px; cursor: default; border-bottom: 1px solid var(--line); }
+table.lv tr.grp .ghead { border: 0; padding: 0; }
+#vinfo .cmp { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+#vinfo .cmp h4 { margin: 0 0 8px; font-size: 13px; }
+#vinfo .cmp img { width: 100%; border-radius: 8px; display: block; margin-bottom: 10px; }
+#vinfo .cmp .none { color: var(--mute); font-size: 12px; margin-bottom: 10px; }
+#vinfo .cmp table { width: 100%; border-collapse: collapse; font-size: 12px; }
+#vinfo .cmp th { text-align: left; font-weight: 500; color: var(--mute); padding: 3px 6px 3px 0; vertical-align: top; }
+#vinfo .cmp td { padding: 3px 6px; vertical-align: top; word-break: break-word; user-select: text; }
+#vinfo .cmp thead th { color: var(--ink); }
+#vinfo .chk { list-style: none; margin: 10px 0; padding: 0; font-size: 12px; }
+#vinfo .chk li { padding: 2px 0; }
+#vinfo .chk .s { display: inline-block; width: 16px; font-weight: 700; }
+#vinfo .chk .ok .s { color: var(--ok); } #vinfo .chk .bad .s { color: var(--warn); } #vinfo .chk .q .s { color: var(--mute); }
+#vinfo .cbtn { display: flex; gap: 8px; flex-wrap: wrap; }
+#vinfo .cbtn button { font-size: 12px; padding: 4px 10px; }
+#mno.hide { display: none; }
 .empty { color: var(--mute); padding: 60px 0; text-align: center; grid-column: 1 / -1; }
 .actionbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; transform: translateY(110%); transition: transform .2s; }
 .actionbar.show { transform: none; }
@@ -303,7 +332,7 @@ body.ingest .m-ingest, body.copy .m-copy, body.move .m-move, body.recycle .m-rec
 	</section>
 	</div>
 	<div class="toolbar">
-		<div class="tbrow"><span id="status"></span><span class="sp"></span><span class="lbl">View:</span><span class="seg" id="views"><button data-v="s" title="Small thumbnails"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="4" height="4" rx=".8"/><rect x="6" y="1" width="4" height="4" rx=".8"/><rect x="11" y="1" width="4" height="4" rx=".8"/><rect x="1" y="6" width="4" height="4" rx=".8"/><rect x="6" y="6" width="4" height="4" rx=".8"/><rect x="11" y="6" width="4" height="4" rx=".8"/><rect x="1" y="11" width="4" height="4" rx=".8"/><rect x="6" y="11" width="4" height="4" rx=".8"/><rect x="11" y="11" width="4" height="4" rx=".8"/></svg></button><button data-v="m" title="Medium thumbnails"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6.3" height="6.3" rx="1"/><rect x="8.7" y="1" width="6.3" height="6.3" rx="1"/><rect x="1" y="8.7" width="6.3" height="6.3" rx="1"/><rect x="8.7" y="8.7" width="6.3" height="6.3" rx="1"/></svg></button><button data-v="l" title="Large thumbnails"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1.5" y="1.5" width="13" height="13" rx="1.6"/></svg></button><button data-v="list" title="List with details"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="3" height="3" rx=".6"/><rect x="5.5" y="2.8" width="9.5" height="1.4" rx=".7"/><rect x="1" y="6.5" width="3" height="3" rx=".6"/><rect x="5.5" y="7.3" width="9.5" height="1.4" rx=".7"/><rect x="1" y="11" width="3" height="3" rx=".6"/><rect x="5.5" y="11.8" width="9.5" height="1.4" rx=".7"/></svg></button></span></div>
+		<div class="tbrow"><span id="status"></span><span class="sp"></span><span class="lbl">Group:</span><span class="seg" id="groups"><button data-g="" title="No grouping">None</button><button data-g="folder" title="Group by folder">Folder</button><button data-g="day" title="Group by capture date">Date</button><button data-g="camera" title="Group by camera">Camera</button></span><span class="lbl">View:</span><span class="seg" id="views"><button data-v="s" title="Small thumbnails"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="4" height="4" rx=".8"/><rect x="6" y="1" width="4" height="4" rx=".8"/><rect x="11" y="1" width="4" height="4" rx=".8"/><rect x="1" y="6" width="4" height="4" rx=".8"/><rect x="6" y="6" width="4" height="4" rx=".8"/><rect x="11" y="6" width="4" height="4" rx=".8"/><rect x="1" y="11" width="4" height="4" rx=".8"/><rect x="6" y="11" width="4" height="4" rx=".8"/><rect x="11" y="11" width="4" height="4" rx=".8"/></svg></button><button data-v="m" title="Medium thumbnails"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6.3" height="6.3" rx="1"/><rect x="8.7" y="1" width="6.3" height="6.3" rx="1"/><rect x="1" y="8.7" width="6.3" height="6.3" rx="1"/><rect x="8.7" y="8.7" width="6.3" height="6.3" rx="1"/></svg></button><button data-v="l" title="Large thumbnails"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1.5" y="1.5" width="13" height="13" rx="1.6"/></svg></button><button data-v="list" title="List with details"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="3" height="3" rx=".6"/><rect x="5.5" y="2.8" width="9.5" height="1.4" rx=".7"/><rect x="1" y="6.5" width="3" height="3" rx=".6"/><rect x="5.5" y="7.3" width="9.5" height="1.4" rx=".7"/><rect x="1" y="11" width="3" height="3" rx=".6"/><rect x="5.5" y="11.8" width="9.5" height="1.4" rx=".7"/></svg></button></span></div>
 		<div id="devices"></div>
 	</div>
 	<pre id="log"></pre>
@@ -339,6 +368,8 @@ const store = {
 	set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 };
 let items = [], filter = "missing", sel = new Set(), poll = null, canUpload = false, devSel = new Set();
+let approved = new Set(), forced = new Set(), groupBy = "", pendingUpgrade = null, pendingView = null;
+try { groupBy = localStorage.getItem("tim_group") || ""; } catch (e) {}
 const NONE = "__none__";
 const APPS = new Set(["Screenshot", "WhatsApp", "Facebook", "Instagram", "Snapchat", "Twitter / X", "Telegram", "Bixby Vision", "Download"]);
 for (const id of ["root", "dest"]) {
@@ -440,18 +471,75 @@ function setView(v) {
 	if (items.length) render();
 }
 document.querySelectorAll("#views button").forEach(b => b.onclick = () => setView(b.dataset.v));
+function setGroup(g) {
+	groupBy = g;
+	try { localStorage.setItem("tim_group", g); } catch (e) {}
+	document.querySelectorAll("#groups button").forEach(b => b.classList.toggle("on", b.dataset.g === g));
+	if (items.length) render();
+}
+document.querySelectorAll("#groups button").forEach(b => b.onclick = () => setGroup(b.dataset.g));
 function selToggle(path, el) {
 	sel.has(path) ? sel.delete(path) : sel.add(path);
 	el.classList.toggle("sel");
 	upd();
 }
+const VERD = {verified: ["Verified", "verified"], unsure: ["Can't tell", "unsure"], differs: ["Differs", "differs"], multi: ["Several matches", "multi"]};
+const CHK = [["time", "Capture time"], ["exposure", "Exposure"], ["gps", "GPS"], ["picture", "Picture"], ["camera", "Camera"], ["lens", "Lens"], ["aspect", "Aspect ratio"]];
+const SYM = {ok: "\u2713", bad: "\u2717", "?": "?"};
+function checkText(it) {
+	if (!it.checks) return it.verdict === "multi" ? "Several immich assets share this filename - can't upgrade" : "";
+	return CHK.map(([k, l]) => { const c = it.checks[k] || ["?", ""]; return `${SYM[c[0]]} ${l}: ${c[1]}`; }).join("\n");
+}
+function vtag(it) {
+	if (it.status !== "name" || !VERD[it.verdict]) return "";
+	const [l, c] = VERD[it.verdict];
+	let h = `<span class="tag ${c}" title="${esc(checkText(it))}">${l}</span>`;
+	if (forced.has(it.path)) h += `<span class="tag appr" title="Approved one by one in the compare view">Approved anyway</span>`;
+	else if (approved.has(it.path) && it.verdict === "unsure") h += `<span class="tag appr">Approved</span>`;
+	return h;
+}
+const GROUPS = {folder: i => i.rel.includes("/") ? i.rel.slice(0, i.rel.lastIndexOf("/")) : "(top level)", day: i => i.day || "No capture date", camera: i => i.camera || "Unknown camera"};
+function grouped(list) {
+	if (!GROUPS[groupBy]) return list;
+	const k = GROUPS[groupBy], order = new Map();
+	list.forEach(i => { const g = k(i); if (!order.has(g)) order.set(g, []); order.get(g).push(i); });
+	return [...order.keys()].sort((a, b) => a.localeCompare(b, "en", {numeric: true})).flatMap(g => order.get(g));
+}
+function groupHead(key, members) {
+	const nm = members.filter(i => i.status === "name");
+	const v = nm.filter(i => i.verdict === "verified").length, u = nm.filter(i => i.verdict === "unsure"), d = nm.filter(i => i.verdict === "differs").length;
+	const allAppr = u.length && u.every(i => approved.has(i.path));
+	const el = document.createElement("div");
+	el.className = "ghead";
+	el.innerHTML = `<b>${esc(key)}</b><span>${members.length.toLocaleString()} file${members.length === 1 ? "" : "s"}</span>` +
+		(nm.length ? `<span>&middot; ${v} verified &middot; ${u.length} can't tell &middot; ${d} differ</span>` : "") +
+		`<span class="sp"></span><button class="gsel">Select group</button>` +
+		(u.length ? `<button class="gapp" title="Treat this group's can't-tell filename matches as OK to upgrade. Never overrides a difference.">${allAppr ? "Unapprove group" : "Approve group"}</button>` : "");
+	el.querySelector(".gsel").onclick = () => { members.forEach(i => sel.add(i.path)); render(); };
+	const ga = el.querySelector(".gapp");
+	if (ga) ga.onclick = () => { u.forEach(i => allAppr ? approved.delete(i.path) : approved.add(i.path)); render(); };
+	return el;
+}
 function renderList(list, io) {
 	const cols = [["", ""], ["name", "File"], ["folder", "Folder"], ["source", "Source"], ["camera", "Camera"], ["size", "Size", "n"], ["mtime", "Modified"], ["status", "Status"]];
 	const t = document.createElement("table");
 	t.className = "lv";
-	t.innerHTML = `<thead><tr>${cols.map(([k, l, c]) => `<th${k ? ` data-k="${k}"` : ""} class="${c || ""}${k && k === sortKey ? " sorted" : ""}">${l}${k === sortKey ? (sortDir > 0 ? " &#x25B4;" : " &#x25BE;") : ""}</th>`).join("")}</tr></thead>`;
+	t.innerHTML = `<thead><tr>${cols.map(([k, l, c]) => `<th${k ? ` data-k="${k}"` : ""} class="${c || ""}${k && k === sortKey ? " sorted" : ""}">${l}${k && k === sortKey ? (sortDir > 0 ? " &#x25B4;" : " &#x25BE;") : ""}</th>`).join("")}</tr></thead>`;
 	const tb = document.createElement("tbody");
+	const gk = GROUPS[groupBy], gm = new Map();
+	if (gk) list.forEach(i => { const g = gk(i); if (!gm.has(g)) gm.set(g, []); gm.get(g).push(i); });
+	let prevG = null;
 	for (const it of list) {
+		if (gk && gk(it) !== prevG) {
+			prevG = gk(it);
+			const gr = document.createElement("tr");
+			gr.className = "grp";
+			const td = document.createElement("td");
+			td.colSpan = cols.length;
+			td.appendChild(groupHead(prevG, gm.get(prevG)));
+			gr.appendChild(td);
+			tb.appendChild(gr);
+		}
 		const tr = document.createElement("tr");
 		const q = encodeURIComponent(it.path);
 		const d = new Date(it.mtime * 1000);
@@ -466,7 +554,7 @@ function renderList(list, io) {
 			<td>${esc(it.camera || "")}</td>
 			<td class="n">${fmt(it.size)}${it.status === "name" && it.twins.length === 1 && it.twins[0].size ? ` <span class="lbl">vs ${fmt(it.twins[0].size)}</span>` : ""}</td>
 			<td>${d.toLocaleDateString("en-GB")} ${d.toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"})}</td>
-			<td><span class="tag ${it.status}">${label}</span>${it.damaged ? ` <span class="tag dmgt">Damaged</span>` : ""}</td>`;
+			<td><span class="tag ${it.status}">${label}</span> ${vtag(it)}${it.damaged ? ` <span class="tag dmgt">Damaged</span>` : ""}</td>`;
 		tr.title = info(it).map(([k, v]) => `${k}: ${v}`).join("\n");
 		tr.addEventListener("dblclick", e => { e.preventDefault(); view(it.path); });
 		tr.addEventListener("click", () => { if (!String(window.getSelection())) selToggle(it.path, tr); });
@@ -482,7 +570,7 @@ function renderList(list, io) {
 }
 function render() {
 	devices();
-	const list = sorted(shown());
+	const list = grouped(sorted(shown()));
 	$("#grid").classList.toggle("list", viewMode === "list");
 	$("#grid").innerHTML = list.length ? "" : `<div class="empty">${items.length ? "Nothing in this view" : "Scan a folder to start"}</div>`;
 	const io = new IntersectionObserver(es => es.forEach(e => {
@@ -495,12 +583,16 @@ function render() {
 		return;
 	}
 	const frag = document.createDocumentFragment();
+	const gk = GROUPS[groupBy], gm = new Map();
+	if (gk) list.forEach(i => { const g = gk(i); if (!gm.has(g)) gm.set(g, []); gm.get(g).push(i); });
+	let prevG = null;
 	for (const it of list) {
+		if (gk && gk(it) !== prevG) { prevG = gk(it); frag.appendChild(groupHead(prevG, gm.get(prevG))); }
 		const c = document.createElement("div");
 		c.className = "tile" + (sel.has(it.path) ? " sel" : "");
 		const q = encodeURIComponent(it.path);
 		const label = {missing: "Not in immich", sha1: "In immich", name: "Filename match", unreadable: "Unreadable"}[it.status];
-		const twin = it.status === "name" ? (it.twins.length === 1 ? `<div class="sub2 twin">immich copy: ${it.twins[0].size ? fmt(it.twins[0].size) : "size unknown"}${it.twins[0].size && it.size > it.twins[0].size ? " &middot; this is bigger" : ""}</div>` : `<div class="sub2 twin">${it.twins.length} filename matches in immich</div>`) : "";
+		const twin = it.status === "name" ? (it.twins.length === 1 ? `<div class="sub2 twin"><span>immich copy: ${it.twins[0].size ? fmt(it.twins[0].size) : "size unknown"}${it.twins[0].size && it.size > it.twins[0].size ? " &middot; this is bigger" : ""}</span>${vtag(it)}</div>` : `<div class="sub2 twin"><span>${it.twins.length} filename matches in immich</span>${vtag(it)}</div>`) : "";
 		c.innerHTML = `<div class="img"><img alt="" data-src="/thumb?v=2&p=${q}"><span class="check">&#x2713;</span>${it.damaged ? `<span class="dmg" title="Doesn't decode - won't be uploaded or used to upgrade">Damaged</span>` : ""}<a class="open" href="#" title="Preview (or double-click)"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg></a></div>
 			<div class="meta"><div class="namerow"><div class="name" title="${esc(it.name)}">${esc(it.name)}</div><button class="cp" title="Copy full path">&#x2398;</button></div>
 			<div class="sub2 rel" title="${esc(it.rel)}"><bdi dir="ltr">${esc(it.rel)}</bdi></div>
@@ -538,6 +630,7 @@ function info(it) {
 		["Modified", d.toLocaleDateString("en-GB") + " " + d.toLocaleTimeString("en-GB")],
 	];
 	if (it.status === "name") rows.push(["immich copy", it.twins.length === 1 ? (it.twins[0].size ? fmt(it.twins[0].size) : "size unknown") : `${it.twins.length} filename matches`]);
+	if (it.status === "name" && VERD[it.verdict]) rows.push(["Checks", VERD[it.verdict][0] + (forced.has(it.path) ? " (approved anyway)" : approved.has(it.path) && it.verdict === "unsure" ? " (approved)" : "")]);
 	return rows;
 }
 
@@ -556,13 +649,52 @@ function view(p) {
 	$("#vfit").textContent = "Actual size";
 	$("#vbody").innerHTML = it.kind === "video" ? `<video src="/file?p=${q}" controls autoplay muted></video>` : `<img src="/file?p=${q}" alt="">`;
 	$("#vsel").textContent = sel.has(p) ? "Deselect" : "Select";
-	$("#vinfo").innerHTML = `<dl>${info(it).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl><div class="full">${esc(it.path)}</div>`;
+	$("#vinfo").innerHTML = `<dl>${info(it).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>` + comparePanel(it) + `<div class="full">${esc(it.path)}</div>`;
+	wireCompare(it);
 	document.querySelectorAll(".tile.viewing, table.lv tr.viewing").forEach(t => t.classList.remove("viewing"));
 	const t = [...document.querySelectorAll(".tile, table.lv tbody tr")].find(t => t.dataset.path === p);
 	if (t) { t.classList.add("viewing"); t.scrollIntoView({block: "nearest"}); }
 }
+const dtf = v => v ? v.replace(/^(\d{4}):(\d\d):(\d\d)/, "$1-$2-$3") : "";
+function expf(o) {
+	const a = [];
+	if (o.exp) a.push(o.exp >= 1 ? `${+o.exp.toFixed(1)} s` : `1/${Math.round(1 / o.exp)} s`);
+	if (o.f) a.push(`f/${+o.f.toFixed(1)}`);
+	if (o.iso) a.push(`ISO ${Math.round(o.iso)}`);
+	if (o.fl) a.push(`${Math.round(o.fl)} mm`);
+	return a.join(" \u00b7 ");
+}
+const gpsf = o => o.lat != null && o.lon != null ? `${o.lat.toFixed(5)}, ${o.lon.toFixed(5)}` : "";
+const dimf = o => o.w && o.h ? `${Math.round(o.w)} \u00d7 ${Math.round(o.h)}` : "";
+function comparePanel(it) {
+	if (it.status !== "name" || it.twins.length !== 1) return "";
+	const m = it.meta || {}, t = it.twins[0], pc = (it.checks && it.checks.picture || ["?"])[0];
+	const rows = [["Captured", dtf(m.dt), dtf(t.dt)], ["Camera", m.model, t.model], ["Lens", m.lens, t.lens], ["Exposure", expf(m), expf(t)],
+		["GPS", gpsf(m), gpsf(t)], ["Pixels", dimf(m), dimf(t)], ["File size", fmt(it.size), t.size ? fmt(t.size) : ""]];
+	if (m.raw) rows.push(["Original", m.raw, ""]);
+	let btns = "";
+	if (it.pic == null) btns = `<button id="cfetch" class="primary">Compare with immich</button>`;
+	else if (pc === "bad") btns = "";
+	else if (pc === "ok" && it.verdict === "unsure") btns = `<button id="cappr">${approved.has(it.path) ? "Unapprove" : "Approve"}</button>`;
+	if (it.pic != null && pc !== "bad" && (it.verdict === "differs" || pc === "?")) btns += `<button id="cforce" class="danger">${forced.has(it.path) ? "Undo approve" : "Approve anyway"}</button>`;
+	return `<div class="cmp"><h4>immich copy${VERD[it.verdict] ? " - " + esc(VERD[it.verdict][0]) : ""}</h4>` +
+		(it.pic == null ? `<div class="none">immich's thumbnail isn't fetched yet - Compare (or Upgrade) fetches it.</div>` : `<img src="/twin?id=${encodeURIComponent(t.id)}" alt="">`) +
+		`<table><thead><tr><th></th><th>This file</th><th>immich</th></tr></thead><tbody>${rows.map(([k, a, b]) => `<tr><th>${k}</th><td>${esc(a || "-")}</td><td>${esc(b || "-")}</td></tr>`).join("")}</tbody></table>` +
+		`<ul class="chk">${CHK.map(([k, l]) => { const c = (it.checks || {})[k] || ["?", ""]; return `<li class="${c[0] === "?" ? "q" : c[0]}"><span class="s">${SYM[c[0]]}</span>${l}: ${esc(c[1])}</li>`; }).join("")}</ul>` +
+		(pc === "bad" ? `<div class="none">The pictures look different - this one is never upgraded.</div>` : "") +
+		(btns ? `<div class="cbtn">${btns}</div>` : "") + `</div>`;
+}
+function wireCompare(it) {
+	const f = $("#cfetch"), a = $("#cappr"), x = $("#cforce");
+	if (f) f.onclick = () => fetchPictures([it.path], it.path);
+	if (a) a.onclick = () => { approved.has(it.path) ? approved.delete(it.path) : approved.add(it.path); render(); view(it.path); };
+	if (x) x.onclick = async () => {
+		if (!forced.has(it.path) && !await ask("Approve anyway", `Approve this upgrade anyway?\n\nSome checks don't agree (see the list). Only approve it if you can see these are the same photo.`, true)) return;
+		forced.has(it.path) ? forced.delete(it.path) : forced.add(it.path); render(); view(it.path);
+	};
+}
 function step(d) {
-	const list = sorted(shown()), i = list.findIndex(x => x.path === vpath);
+	const list = grouped(sorted(shown())), i = list.findIndex(x => x.path === vpath);
 	if (i >= 0 && list[i + d]) view(list[i + d].path);
 }
 function closeView() { document.body.classList.remove("viewing"); $("#vbody").innerHTML = ""; vpath = null; document.querySelectorAll(".tile.viewing, table.lv tr.viewing").forEach(t => t.classList.remove("viewing")); }
@@ -750,7 +882,7 @@ $("#scan").onclick = async () => {
 	const excludes = [];  // scan everything; skipped folders are filtered live
 	const r = await fetch("/api/scan", {method: "POST", body: JSON.stringify({root: $("#root").value.trim(), excludes})});
 	if (!r.ok) { $("#log").textContent = (await r.json()).error; return; }
-	items = []; sel.clear(); devSel.clear(); render(); $("#log").textContent = "";
+	items = []; sel.clear(); devSel.clear(); approved.clear(); forced.clear(); render(); $("#log").textContent = "";
 	watch();
 };
 function watch() {
@@ -800,19 +932,21 @@ $("#acct").onchange = async e => {
 	acctSig = "";
 	if (j.error) { $("#log").textContent = j.error; }
 	const had = items.length && $("#root").value.trim();
-	items = []; sel.clear(); render();
+	items = []; sel.clear(); approved.clear(); forced.clear(); render();
 	const s = await fetch("/api/status").then(r => r.json());
 	acct(s);
 	if (!j.error && had) $("#scan").click();
 };
 
 // ---- centred confirm ----
-function ask(okLabel, msg, danger) {
+function tell(msg) { return ask("OK", msg, false, true); }
+function ask(okLabel, msg, danger, noCancel) {
 	return new Promise(done => {
 		const m = $("#modal"), [first, ...rest] = msg.split("\n");
 		m.querySelector(".mmsg").innerHTML = `<b>${esc(first)}</b>` + esc(rest.join("\n").replace(/^\n+/, ""));
 		$("#mok").textContent = okLabel;
 		$("#mok").className = (danger ?? /Delete|Recycle/.test(okLabel)) ? "danger" : "primary";
+		$("#mno").classList.toggle("hide", !!noCancel);
 		const end = v => { m.classList.remove("on"); document.removeEventListener("keydown", key, true); done(v); };
 		const key = e => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); end(false); } };
 		$("#mok").onclick = () => end(true);
@@ -820,14 +954,15 @@ function ask(okLabel, msg, danger) {
 		m.onclick = e => { if (e.target === m) end(false); };
 		document.addEventListener("keydown", key, true);
 		m.classList.add("on");
-		$("#mno").focus();
+		(noCancel ? $("#mok") : $("#mno")).focus();
 	});
 }
 
 // ---- actions ----
 // ---- background jobs: progress strip + live per-tile outcome ----
 const JOBV = {copy: ["Copying", "Copied", "Copied"], move: ["Moving", "Moved", "Moved"], upload: ["Uploading", "Uploaded to immich", "Uploaded"], upgrade: ["Upgrading", "Upgraded in immich", "Upgraded"],
-	recycle: ["Recycling", "Moved to recycle bin", "Recycled"], delete: ["Deleting", "Deleted (to recycle bin)", "Deleted"]};
+	recycle: ["Recycling", "Moved to recycle bin", "Recycled"], delete: ["Deleting", "Deleted (to recycle bin)", "Deleted"],
+	compare: ["Comparing with immich", "Compared with immich's thumbnails", "Compared"]};
 let jobPoll = null, jobSince = 0, jobbing = false;
 function mark(path, outcome, kind) {
 	const el = [...document.querySelectorAll(".tile, table.lv tbody tr")].find(t => t.dataset.path === path);
@@ -853,7 +988,14 @@ function finishJob(j) {
 	if (r.kept && r.kept.length) msg += `\nSource files kept ${r.kept.length}:\n  ` + r.kept.map(x => x[0] + " - " + x[1]).join("\n  ");
 	if (r.skipped && r.skipped.length) msg += `\nSkipped ${r.skipped.length}:\n  ` + r.skipped.map(x => x[0] + " - " + x[1]).join("\n  ");
 	if (r.failed && r.failed.length) msg += `\nFailed ${r.failed.length}:\n  ` + r.failed.map(x => x[0] + " - " + x[1]).join("\n  ");
-	fetch("/api/status").then(r => r.json()).then(s => { items = s.items; sel.clear(); render(); $("#log").textContent = msg; });
+	if (r.verdicts) msg += "\n" + Object.entries(r.verdicts).map(([k, n]) => `${(VERD[k] || [k])[0]}: ${n}`).join(", ");
+	const chain = j.kind === "compare" && !r.error ? pendingUpgrade : null, back = pendingView;
+	pendingUpgrade = null; pendingView = null;
+	fetch("/api/status").then(r => r.json()).then(s => {
+		items = s.items; sel.clear(); render(); $("#log").textContent = msg;
+		if (back && items.some(i => i.path === back)) view(back);
+		if (chain) doUpgrade(chain);
+	});
 }
 function pollJob() {
 	jobbing = true; scanning = true; controls();
@@ -862,7 +1004,7 @@ function pollJob() {
 	jobPoll = setInterval(async () => {
 		const j = await fetch("/api/job?since=" + jobSince).then(r => r.json());
 		jobSince = j.next;
-		j.log.forEach(([p, o]) => mark(p, o, j.kind));
+		if (j.kind !== "compare") j.log.forEach(([p, o]) => mark(p, o, j.kind));
 		$("#phase").textContent = JOBV[j.kind] ? JOBV[j.kind][0] : "Working";
 		$("#pct").textContent = `${j.done.toLocaleString()} / ${j.total.toLocaleString()}`;
 		$("#prog").style.width = j.total ? (100 * j.done / j.total) + "%" : "0";
@@ -901,10 +1043,44 @@ $("#upload").onclick = async () => {
 	if ($("#delafter").checked && !await ask("Upload", `Upload ${picked("missing").length} files and move each source file to the share's recycle bin once it's in immich?`, true)) return;
 	act("/api/upload", picked("missing"), {descriptor, albums: $("#albums").checked, delete_after: $("#delafter").checked}, "Uploaded to immich:", $("#upload"));
 };
+async function fetchPictures(paths, backTo) {
+	if (!await ask("Compare", `Upgrading replaces photos in immich\nTo prevent replacing the wrong photo, PhotoCopy compares each one against immich's own thumbnail first.\n\nFetch ${paths.length.toLocaleString()} thumbnail${paths.length === 1 ? "" : "s"} from immich? They're cached, so each is only fetched once.`, false)) {
+		pendingUpgrade = null;
+		await tell("Upgrading blind risks replacing the wrong photo - disabled until thumbnails are allowed.");
+		return false;
+	}
+	pendingView = backTo || null;
+	act("/api/compare", paths, {}, "Compared:", $("#upgrade"));
+	return true;
+}
+function doUpgrade(paths) {
+	const m = byPath(), ok = [], left = {notyet: 0, picbad: 0, picq: 0, differs: 0, unsure: 0};
+	for (const p of paths) {
+		const i = m.get(p);
+		if (!i || i.status !== "name" || (i.twins || []).length !== 1) continue;
+		const pc = (i.checks && i.checks.picture || ["?"])[0];
+		if (i.pic == null) left.notyet++;
+		else if (pc === "bad") left.picbad++;
+		else if (forced.has(p)) ok.push(p);
+		else if (pc !== "ok") left.picq++;
+		else if (i.verdict === "differs") left.differs++;
+		else if (i.verdict === "verified" || approved.has(p)) ok.push(p);
+		else left.unsure++;
+	}
+	const why = [[left.picbad, "picture looks different"], [left.differs, "metadata differs"], [left.picq, "picture check inconclusive"],
+		[left.unsure, "can't tell - not approved"], [left.notyet, "not compared"]].filter(x => x[0]).map(([n, t]) => `${n} - ${t}`);
+	if (!ok.length) return tell(`Nothing passed the checks\n${why.join("\n")}\n\nOpen a photo to compare it with immich's copy, or approve a group of can't-tell matches.`);
+	return ask("Upgrade", `Upgrade ${ok.length.toLocaleString()} immich photo${ok.length === 1 ? "" : "s"}?\n\nEach is uploaded, gets the old asset's albums, favourite, stack, shared links, tags and description, then the old asset goes to immich's trash.` +
+		(why.length ? `\n\nLeft alone:\n${why.join("\n")}` : "") + ($("#delafter").checked ? `\n\nThe source files then go to the share's recycle bin.` : ""), $("#delafter").checked).then(go => {
+		if (go) act("/api/upgrade", ok, {descriptor: $("#desc").value.trim() || folderName(), delete_after: $("#delafter").checked,
+			approved: [...approved].filter(x => ok.includes(x)), forced: [...forced].filter(x => ok.includes(x))}, "Upgraded in immich:", $("#upgrade"));
+	});
+}
 $("#upgrade").onclick = async () => {
 	const p = picked("name").filter(x => (byPath().get(x).twins || []).length === 1);
-	if (!await ask("Upgrade", `Upgrade ${p.length} immich photos with these files?\n\nEach is uploaded, gets the old asset's albums, favourite, stack, shared links, tags and description, then the old asset goes to immich's trash.` + ($("#delafter").checked ? `\n\nThe source files then go to the share's recycle bin.` : ""), $("#delafter").checked)) return;
-	act("/api/upgrade", p, {descriptor: $("#desc").value.trim() || folderName(), delete_after: $("#delafter").checked}, "Upgraded in immich:", $("#upgrade"));
+	const need = p.filter(x => byPath().get(x).pic == null);
+	if (need.length) { pendingUpgrade = p; await fetchPictures(need); return; }
+	doUpgrade(p);
 };
 $("#del").onclick = async () => {
 	const m = byPath(), p = [...sel].filter(x => m.get(x) && !m.get(x).protected);
@@ -928,6 +1104,7 @@ $("#recycle").onclick = async () => {
 
 setMode(store.get("tim_mode") || "ingest");
 setView(viewMode);
+setGroup(groupBy);
 tagPreview();
 loadTree();
 fetch("/api/job?since=0").then(r => r.json()).then(j => { if (j.running) { jobSince = 0; pollJob(); } });

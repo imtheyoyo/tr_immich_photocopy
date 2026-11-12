@@ -12,6 +12,8 @@ Co-developed with Claude Opus 5.5.
 - **Filename match** - same filename in immich but different bytes - candidates for an in-place upgrade, maintaining existing metadata
 - **Ingest** - upload to immich, tagged `src_photocopy/<date> - <descriptor>`, optionally creating albums from folders
 - **Upgrade** - replaces the immich asset with the new file, keeping albums/tags/favourites/description and with the old asset going to immich's trash
+- **Match checks** - every filename match is checked against immich's copy (capture time, camera, lens, exposure, GPS, aspect ratio) and marked Verified, Can't tell or Differs; Upgrade also compares both pictures first
+- **Grouping** - group results by folder, capture date or camera, then select or approve a whole group
 - **Copy/Move** - to any folder under the allowed roots, optionally keeping subfolder structure
 - **Recycle/Delete** - source files go to the share's `#recycle` and are never deleted outright
 - **Damaged files** - JPEGs that don't decode are flagged and never uploaded or used to upgrade
@@ -21,6 +23,7 @@ Co-developed with Claude Opus 5.5.
 
 - **immich database** - read only (enforced with the [read-only role in setup step 3](#3-postgres-login-read-only))
 - **immich assets** - nothing is deleted, except Upgrade sending the replaced asset to immich's trash (recoverable until the trash empties)
+- **Upgrade checks** - only Verified or approved matches are upgraded, and only after the picture check passes. Thumbnails are fetched from immich only when you upgrade (cached), and a different-looking picture is never upgraded
 - **Undo** - uploads carry a `src_photocopy/...` tag, upgrades get `src_photocopy/upgraded` and every upgrade is logged with both old and new asset ids in `CACHE_DIR/upgrades.jsonl`
 - **Not undoable with tags** - albums made by "Create albums from folders"; favourites/stacks/shared links that have moved onto an upgraded asset
 - **Local files** - never hard-deleted: Delete, Recycle and "Delete source files" all move to the share's `#recycle`
@@ -48,9 +51,11 @@ Put this folder somewhere on the NAS, e.g. `/volume2/scripts/immich/tr-photocopy
 One key per immich account you want to match against (immich → Account Settings → API Keys).
 
 Permissions:
-- `asset.read`, `asset.upload`, `user.read`
+- `asset.read`, `asset.upload`, `asset.view`, `user.read`
 - `tag.create`, `tag.asset`
 - `album.create`, `albumAsset.create` (only for "Create albums from folders")
+
+`asset.view` lets Upgrade compare against immich's thumbnails - without it, Upgrade is refused.
 
 Match-only accounts (external-library accounts) only need `asset.read` and `user.read`.
 

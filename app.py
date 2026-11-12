@@ -14,8 +14,8 @@ Env (normally from .env next to the compose file):
   PGHOST / PGUSER / PGPASSWORD / PGDATABASE   Immich Postgres
   IMMICH_URL       default http://immich_server:2283
   IMMICH_KEY_<NAME>  one per immich account, e.g. IMMICH_KEY_Main, IMMICH_KEY_Family - picked in the page
-                   (asset.upload, asset.read, user.read, tag.create, tag.asset; album.create +
-                   albumAsset.create for folder -> album)
+                   (asset.upload, asset.read, asset.view, user.read, tag.create, tag.asset; album.create +
+                   albumAsset.create for folder -> album; asset.view lets Upgrade compare against immich's thumbnails)
   IMMICH_DEFAULT   name selected at startup, default the first account that can upload
   IMMICH_NO_UPLOAD comma list of NAMEs that can match but never upload / upgrade (external-library accounts)
   IMMICH_API_KEY / IMMICH_API_KEY_FILE   single-key fallback, shown as MAIN
@@ -28,14 +28,14 @@ Env (normally from .env next to the compose file):
   PORT             default 8791
   CHECKSUMS_FILE   hex SHA-1 list used instead of Postgres (testing)
 """
-import errno, csv, datetime, re, hashlib, io, json, os, shutil, subprocess, threading, time, traceback, uuid
+import errno, csv, datetime, math, re, hashlib, io, json, os, shutil, subprocess, threading, time, traceback, uuid
 import urllib.error, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageChops, ImageOps
 Image.MAX_IMAGE_PIXELS = None  # local trusted files; panoramas trip the decompression-bomb guard
 try:
     import pillow_heif
@@ -150,29 +150,59 @@ def me(key=None):
     return j["id"], (j.get("name") or "").strip() or j.get("email", "")
 
 
+TWIN_KEYS = ("id", "size", "dt", "model", "lens", "iso", "f", "exp", "fl", "lat", "lon", "w", "h")
+
+
 def immich_names(owner_id):
-    """{lower original filename: [(asset id, size bytes or 0)]} for the owner's live assets."""
-    f = os.environ.get("NAMES_FILE")  # testing: lines "name<TAB>id<TAB>size"
+    """{lower original filename: [twin dict]} for the owner's live assets. A twin carries the metadata
+    the upgrade checks compare: local capture time, camera, lens, exposure, GPS, dimensions."""
+    f = os.environ.get("NAMES_FILE")  # testing: lines "name<TAB>id<TAB>size[<TAB>dt<TAB>model...]"
     out = {}
     if f:
         for l in open(f):
-            n, i, s = l.rstrip("\n").split("\t")
-            out.setdefault(n.lower(), []).append((i, int(s or 0)))
+            parts = l.rstrip("\n").split("\t")
+            out.setdefault(parts[0].lower(), []).append(_twin([parts[1], parts[2], *parts[3:]]))
         return out
+    full = ("to_char(a.\"localDateTime\", 'YYYY-MM-DD HH24:MI:SS'), coalesce(e.model, ''), coalesce(e.\"lensModel\", ''), "
+            "coalesce(e.iso::text, ''), coalesce(e.\"fNumber\"::text, ''), coalesce(e.\"exposureTime\", ''), "
+            "coalesce(e.\"focalLength\"::text, ''), coalesce(e.latitude::text, ''), coalesce(e.longitude::text, ''), "
+            "coalesce(e.\"exifImageWidth\"::text, ''), coalesce(e.\"exifImageHeight\"::text, '')")
     last = ""
-    for asset, exif in (("asset", "asset_exif"), ("assets", "exif")):
-        sql = (f"select a.id, a.\"originalFileName\", coalesce(e.\"fileSizeInByte\", 0) from {asset} a "
+    for asset, exif, extra in (("asset", "asset_exif", full), ("assets", "exif", full), ("asset", "asset_exif", ""), ("assets", "exif", "")):
+        sql = (f"select a.id, a.\"originalFileName\", coalesce(e.\"fileSizeInByte\", 0){', ' + extra if extra else ''} from {asset} a "
                f"left join {exif} e on e.\"assetId\" = a.id "
                f"where a.\"deletedAt\" is null and a.\"ownerId\" = '{owner_id}'")
         r = subprocess.run(["psql", "-At", "-F", "\t", "-c", sql], capture_output=True, text=True)
         if r.returncode == 0:
             for l in r.stdout.splitlines():
                 parts = l.split("\t")
-                if len(parts) == 3:
-                    out.setdefault(parts[1].lower(), []).append((parts[0], int(parts[2] or 0)))
+                if len(parts) >= 3:
+                    out.setdefault(parts[1].lower(), []).append(_twin([parts[0], parts[2], *parts[3:]]))
+            if not extra:
+                print("immich metadata columns not found - upgrade checks limited to the picture check", flush=True)
             return out
         last = r.stderr.strip()
     raise RuntimeError(f"immich Postgres name query failed: {last}")
+
+
+def _num(v):
+    try:
+        if v in (None, ""):
+            return None
+        if isinstance(v, str) and "/" in v:  # immich stores exposure as "1/200"
+            a, b = v.split("/", 1)
+            return float(a) / float(b)
+        return float(v)
+    except (ValueError, ZeroDivisionError):
+        return None
+
+
+def _twin(parts):
+    t = dict(zip(TWIN_KEYS, parts + [""] * (len(TWIN_KEYS) - len(parts))))
+    t["size"] = int(t["size"] or 0)
+    for k in ("iso", "f", "exp", "fl", "lat", "lon", "w", "h"):
+        t[k] = _num(t[k])
+    return t
 
 
 def immich_checksums(owner_id):
@@ -322,29 +352,214 @@ def _first(row, *keys):
     return ""
 
 
+META_TAGS = ["-DateTimeOriginal", "-CreateDate", "-LensModel", "-ISO", "-FNumber", "-ExposureTime", "-FocalLength",
+             "-Composite:GPSLatitude", "-Composite:GPSLongitude", "-ImageWidth", "-ImageHeight", "-RawFileName",
+             "-PreservedFileName"]
+
+
+def _meta(row):
+    dt = _first(row, "DateTimeOriginal") or _first(row, "CreateDate")
+    m = {"dt": dt[:19] if re.match(r"\d{4}:\d\d:\d\d \d\d:\d\d:\d\d", dt or "") and not dt.startswith("0000") else "",
+         "model": (row.get("Model") or "").strip(), "lens": (row.get("LensModel") or "").strip(),
+         "raw": (row.get("RawFileName") or row.get("PreservedFileName") or "").strip()}
+    for k, col in (("iso", "ISO"), ("f", "FNumber"), ("exp", "ExposureTime"), ("fl", "FocalLength"),
+                   ("lat", "GPSLatitude"), ("lon", "GPSLongitude"), ("w", "ImageWidth"), ("h", "ImageHeight")):
+        m[k] = _num((row.get(col) or "").strip())
+    return m
+
+
 def cameras(paths):
-    """exiftool Make/Model/Software -> {path: ("camera name", "Software")}; empty name = no camera info.
+    """exiftool -> {path: ("camera name", "Software", meta)}; empty name = no camera info. meta = capture time,
+    model, lens, exposure, GPS, dimensions (numeric, -n) for the upgrade checks and date grouping.
     Photos: EXIF Make/Model. Videos: any *Make*/*Model* tag (phones write them as QuickTime Keys /
     Android / vendor tags, often at the end of the file, so videos are read without -fast2)."""
     out = {}
     vids = [p for p in paths if Path(p).suffix.lower() in VIDEO]
     imgs = [p for p in paths if Path(p).suffix.lower() not in VIDEO]
     done = 0
-    for group, args in ((imgs, ["-fast2", "-Make", "-Model", "-Software"]),
-                        (vids, ["*Make*", "*Model*", "-Software", "-Encoder"])):
+    for group, args in ((imgs, ["-fast2", "-Make", "-Model", "-Software", *META_TAGS]),
+                        (vids, ["*Make*", "*Model*", "-Software", "-Encoder", "-CreateDate", "-ImageWidth", "-ImageHeight"])):
         args = [a if a.startswith("-") else "-" + a for a in args]
         for i in range(0, len(group), 200):
             check_stop()
             chunk = group[i:i + 200]
-            r = subprocess.run(["exiftool", "-q", "-m", "-csv", *args, "-charset", "filename=utf8", "-@", "-"],
+            r = subprocess.run(["exiftool", "-q", "-m", "-n", "-csv", *args, "-charset", "filename=utf8", "-@", "-"],
                                input="\n".join(chunk) + "\n", capture_output=True, text=True)
             for row in csv.DictReader(r.stdout.splitlines()):
                 make = _first(row, "Make", "Manufacturer")
                 model = _first(row, "Model")
-                out[row["SourceFile"]] = (_camera_name(make, model), _first(row, "Software", "Encoder"))
+                out[row["SourceFile"]] = (_camera_name(make, model), _first(row, "Software", "Encoder"), _meta(row))
             done += len(chunk)
             set_progress(done=done)
     return out
+
+
+# ---------- upgrade checks ----------
+# Frame-specific checks pin down one shot; supporting ones only narrow it down. Verified = at least two
+# checks agree, at least one frame-specific, nothing disagrees. Any disagreement = differs. Aspect ratio
+# can disagree (different crop) but never counts as agreement.
+FRAME = {"time", "exposure", "gps", "picture"}
+PIC_OK, PIC_BAD = 10, 22  # dHash Hamming distance (of 64): same picture <= 10, different >= 22
+
+
+def _dt(v):
+    for f in ("%Y:%m:%d %H:%M:%S", "%Y-%m-%d %H:%M:%S"):
+        try:
+            return datetime.datetime.strptime((v or "")[:19], f)
+        except ValueError:
+            pass
+    return None
+
+
+def _norm(v):
+    return re.sub(r"\s+", " ", (v or "").strip().lower())
+
+
+def _metres(a, b, c, d):
+    p = math.pi / 180
+    h = math.sin((c - a) * p / 2) ** 2 + math.cos(a * p) * math.cos(c * p) * math.sin((d - b) * p / 2) ** 2
+    return 12742000 * math.asin(math.sqrt(min(1, h)))
+
+
+def evaluate(m, t, pic=None):
+    """Compare local metadata m with immich twin t. Returns ({check: [state, note]}, verdict).
+    state: ok / bad / ? ; verdict: verified / differs / unsure."""
+    c = {}
+    a, b = _dt(m.get("dt")), _dt(t.get("dt"))
+    if a and b:
+        d = abs((a - b).total_seconds())
+        if d <= 2:
+            c["time"] = ["ok", "Same second"]
+        elif d <= 86400:
+            c["time"] = ["ok", "Within a day"]
+        elif not t.get("model"):  # no camera data on immich's copy (e.g. via Facebook): its date is often the upload date
+            c["time"] = ["?", f"{d / 86400:.0f} days apart - immich's copy has no camera data, so its date may be an upload date"]
+        else:
+            c["time"] = ["bad", f"{d / 86400:.0f} days apart"]
+    else:
+        c["time"] = ["?", "Missing on " + ("both" if not a and not b else "this file" if not a else "immich")]
+    if m.get("model") and t.get("model"):
+        c["camera"] = ["ok", m["model"]] if _norm(m["model"]) == _norm(t["model"]) else ["bad", f"{m['model']} vs {t['model']}"]
+    else:
+        c["camera"] = ["?", "Missing"]
+    if m.get("lens") and t.get("lens"):  # lens names vary between tools - never a disagreement
+        c["lens"] = ["ok", m["lens"]] if _norm(m["lens"]) == _norm(t["lens"]) else ["?", f"{m['lens']} vs {t['lens']}"]
+    else:
+        c["lens"] = ["?", "Missing"]
+    pairs = [(k, m.get(k), t.get(k)) for k in ("iso", "f", "exp", "fl") if m.get(k) is not None and t.get(k) is not None]
+    tol = {"iso": lambda x, y: abs(x - y) < 1, "f": lambda x, y: abs(x - y) < 0.06,
+           "exp": lambda x, y: abs(x - y) <= 0.02 * max(x, y), "fl": lambda x, y: abs(x - y) < 0.6}
+    if len(pairs) >= 3:
+        diff = [k for k, x, y in pairs if not tol[k](x, y)]
+        c["exposure"] = ["ok", "Shutter / aperture / ISO / focal length match"] if not diff else ["bad", "Differs: " + ", ".join(diff)]
+    else:
+        c["exposure"] = ["?", "Missing"]
+    if None not in (m.get("lat"), m.get("lon"), t.get("lat"), t.get("lon")):
+        d = _metres(m["lat"], m["lon"], t["lat"], t["lon"])
+        c["gps"] = ["ok", f"{d:.0f} m"] if d <= 50 else ["bad", f"{d / 1000:.1f} km apart"] if d > 1000 else ["?", f"{d:.0f} m"]
+    else:
+        c["gps"] = ["?", "Missing"]
+    if m.get("w") and m.get("h") and t.get("w") and t.get("h"):
+        r1 = max(m["w"], m["h"]) / min(m["w"], m["h"])
+        r2 = max(t["w"], t["h"]) / min(t["w"], t["h"])
+        c["aspect"] = ["ok", f"{r1:.2f}"] if abs(r1 - r2) <= 0.02 * r2 else ["bad", f"{r1:.2f} vs {r2:.2f} - cropped differently"]
+    else:
+        c["aspect"] = ["?", "Missing"]
+    if pic is None:
+        c["picture"] = ["?", "Not compared yet"]
+    elif pic < 0:
+        c["picture"] = ["?", "Couldn't compare"]
+    else:
+        c["picture"] = ["ok", "Looks the same"] if pic <= PIC_OK else ["bad", "Looks different"] if pic >= PIC_BAD else ["?", "Similar, not certain"]
+    oks = [k for k, v in c.items() if v[0] == "ok" and k != "aspect"]  # aspect only ever disagrees - the picture check already implies it
+    if any(v[0] == "bad" for v in c.values()):
+        verdict = "differs"
+    elif len(oks) >= 2 and FRAME & set(oks):
+        verdict = "verified"
+    else:
+        verdict = "unsure"
+    return c, verdict
+
+
+def dhash(data):
+    """64-bit difference hash of an image (bytes) - survives resizing and recompression."""
+    im = Image.open(io.BytesIO(data))
+    im.draft("L", (64, 64))
+    im = ImageOps.exif_transpose(im).convert("L").resize((9, 8), Image.LANCZOS)
+    px = list(im.getdata())
+    return sum(1 << i for i in range(64) if px[(i // 8) * 9 + i % 8] > px[(i // 8) * 9 + i % 8 + 1])
+
+
+def twin_thumb(asset_id, fetch=True):
+    """immich's own thumbnail for an asset, cached in CACHE/immich. Only fetched when asked (Upgrade)."""
+    if not re.fullmatch(r"[0-9a-f-]{36}", asset_id or ""):
+        return None
+    cf = CACHE / "immich" / (asset_id + ".img")
+    if cf.exists():
+        return cf.read_bytes()
+    if not fetch:
+        return None
+    key = KEYS.get(ACTIVE, "")
+    req = urllib.request.Request(f"{IMMICH_URL}/api/assets/{asset_id}/thumbnail?size=thumbnail", headers={"x-api-key": key})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = resp.read()
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"immich thumbnail {e.code}" + (" - add asset.view to this API key" if e.code in (401, 403) else ""))
+    cf.parent.mkdir(parents=True, exist_ok=True)
+    cf.write_bytes(data)
+    return data
+
+
+def compare_picture(p, asset_id, fetch=True):
+    """Hamming distance between this file's and immich's thumbnail fingerprints; -1 = couldn't compare, None = not fetched."""
+    theirs = twin_thumb(asset_id, fetch)
+    if theirs is None:
+        return None
+    try:
+        mine, ct = thumb_bytes(p)
+        if ct != "image/jpeg":
+            return -1
+        return bin(dhash(mine) ^ dhash(theirs)).count("1")
+    except Exception as e:
+        print(f"picture compare failed: {p}: {e}", flush=True)
+        return -1
+
+
+def check_item(it, pic=None):
+    """(Re)evaluate one filename-match item in place."""
+    if it.get("status") != "name" or len(it.get("twins", [])) != 1:
+        it.pop("checks", None)
+        it["verdict"] = "multi" if it.get("status") == "name" else ""
+        return
+    if pic is not None:
+        it["pic"] = pic
+    it["checks"], it["verdict"] = evaluate(it.get("meta") or {}, it["twins"][0], it.get("pic"))
+
+
+def fetch_pictures(paths):
+    """Job: fetch immich thumbnails for these filename matches (cached) and run the picture check."""
+    res = {"done": 0, "skipped": [], "failed": []}
+    with state_lock:
+        by = {it["path"]: it for it in state["items"]}
+    for p in job_iter(paths, res, "compare"):
+        it = by.get(p)
+        if not it or it.get("status") != "name" or len(it.get("twins", [])) != 1:
+            res["skipped"].append([p, "not a single filename match"])
+            continue
+        try:
+            d = compare_picture(p, it["twins"][0]["id"])
+            with state_lock:
+                check_item(it, d)
+            res["done"] += 1
+            res.setdefault("verdicts", {}).setdefault(it["verdict"], 0)
+            res["verdicts"][it["verdict"]] += 1
+        except Exception as e:
+            res["failed"].append([p, str(e)])
+            if "asset.view" in str(e):
+                res["error"] = str(e)
+                break
+    return res
 
 
 def decodes(p):
@@ -439,12 +654,20 @@ def scan(root, excludes):
                 status = "name"
             items.append({"path": p, "rel": os.path.relpath(p, root), "name": os.path.basename(p),
                           "size": size, "mtime": mtime, "status": status,
-                          "twins": [{"id": i, "size": s} for i, s in twins],
+                          "twins": twins,
                           "kind": "video" if Path(p).suffix.lower() in VIDEO else "image",
-                          "camera": cams.get(p, ("", ""))[0],
-                          "source": source_of(os.path.relpath(p, root), *cams.get(p, ("", ""))),
+                          "camera": cams.get(p, ("", "", {}))[0],
+                          "source": source_of(os.path.relpath(p, root), *cams.get(p, ("", "", {}))[:2]),
+                          "meta": cams.get(p, ("", "", {}))[2],
+                          "day": (cams.get(p, ("", "", {}))[2].get("dt") or "")[:10].replace(":", "-"),
                           "damaged": p in broken,
                           "protected": any(under(p, l) for l in LIBRARY_PATHS)})
+        for it in items:
+            if it["status"] == "name":
+                if len(it["twins"]) == 1:  # a picture check from an earlier fetch is reused from the cache
+                    d = compare_picture(it["path"], it["twins"][0]["id"], fetch=False)
+                    it["pic"] = d
+                check_item(it)
         with state_lock:
             known.clear()
             known.update({p: h for p, h in hashes.items() if h})
@@ -745,9 +968,13 @@ def upload_files(paths, descriptor, albums, root, delete_after=False):
     return res
 
 
-def upgrade_files(paths, descriptor, delete_after=False):
+def upgrade_files(paths, descriptor, delete_after=False, approved=(), forced=()):
     """Same-name, different-bytes: upload this file, carry the old asset's links/tags/description
-    across, then trash the old asset. Logged to CACHE/upgrades.jsonl (old id -> new id)."""
+    across, then trash the old asset. Logged to CACHE/upgrades.jsonl (old id -> new id).
+    Guard: the picture check must pass, and the metadata checks must verify it - or the user approved
+    it (can't-tell only), or forced it one by one in the compare view (also over a metadata difference).
+    A failed picture check is never upgraded."""
+    approved, forced = set(approved), set(forced)
     res = {"done": 0, "skipped": [], "failed": []}
     with state_lock:
         by = {it["path"]: it for it in state["items"]}
@@ -764,6 +991,23 @@ def upgrade_files(paths, descriptor, delete_after=False):
         if it["status"] != "name" or len(it.get("twins", [])) != 1:
             res["skipped"].append([p, "needs exactly one same-name asset in immich"])
             continue
+        pic = (it.get("checks") or {}).get("picture", ["?"])[0]
+        if it.get("pic") is None:
+            res["skipped"].append([p, "picture not compared with immich's copy yet"])
+            continue
+        if pic == "bad":
+            res["skipped"].append([p, "picture check failed - looks like a different photo"])
+            continue
+        if p not in forced:
+            if pic != "ok":
+                res["skipped"].append([p, "picture check inconclusive - approve it in the compare view to upgrade"])
+                continue
+            if it.get("verdict") == "differs":
+                res["skipped"].append([p, "metadata differs - approve it in the compare view to upgrade"])
+                continue
+            if it.get("verdict") != "verified" and p not in approved:
+                res["skipped"].append([p, "not verified - approve it (or its group) to upgrade"])
+                continue
         old = it["twins"][0]["id"]
         try:
             code, oldj = api("GET", f"/api/assets/{old}")
@@ -949,6 +1193,12 @@ class H(BaseHTTPRequestHandler):
             s["accounts"] = [{"name": n, "who": key_state.get(n, {}).get("msg", ""), "ok": key_state.get(n, {}).get("ok", False),
                               "upload": n not in NO_UPLOAD, "active": n == ACTIVE} for n in KEYS]
             return self.send(200, s)
+        if u.path == "/twin":  # immich's thumbnail - only once Upgrade has fetched it, never fetched here
+            data = twin_thumb(q.get("id", [""])[0], fetch=False)
+            if data is None:
+                return self.send(404, {"error": "not fetched"})
+            ct = "image/webp" if data[8:12] == b"WEBP" else "image/jpeg"
+            return self.send(200, data, ct)
         if u.path in ("/thumb", "/file"):
             p = q.get("p", [""])[0]
             with state_lock:
@@ -1049,7 +1299,7 @@ class H(BaseHTTPRequestHandler):
             with state_lock:
                 job["cancel"] = True
             return self.send(200, {"ok": True})
-        if u.path in ("/api/copy", "/api/move", "/api/upload", "/api/recycle", "/api/upgrade", "/api/delete"):
+        if u.path in ("/api/copy", "/api/move", "/api/upload", "/api/recycle", "/api/upgrade", "/api/delete", "/api/compare"):
             with state_lock:
                 root = state["root"]
                 busy = state["running"]
@@ -1062,7 +1312,10 @@ class H(BaseHTTPRequestHandler):
             if kind in ("copy", "move"):
                 fn, args = copy_files, (paths, body.get("dest", ""), bool(body.get("keep_tree")), root, kind == "move")
             elif kind == "upgrade":
-                fn, args = upgrade_files, (paths, body.get("descriptor", ""), bool(body.get("delete_after")))
+                fn, args = upgrade_files, (paths, body.get("descriptor", ""), bool(body.get("delete_after")),
+                                           body.get("approved") or [], body.get("forced") or [])
+            elif kind == "compare":
+                fn, args = fetch_pictures, (paths,)
             elif kind == "upload":
                 fn, args = upload_files, (paths, body.get("descriptor", ""), bool(body.get("albums")), root, bool(body.get("delete_after")))
             elif kind == "delete":
